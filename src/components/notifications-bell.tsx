@@ -5,11 +5,40 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Link } from "@tanstack/react-router";
 
+// Play a short pleasant notification chime via Web Audio API.
+function playChime() {
+  try {
+    const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const now = ctx.currentTime;
+    const notes = [880, 1320]; // A5, E6
+    notes.forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = freq;
+      const t0 = now + i * 0.18;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
+      o.connect(g).connect(ctx.destination);
+      o.start(t0);
+      o.stop(t0 + 0.5);
+    });
+    setTimeout(() => ctx.close().catch(() => {}), 1200);
+  } catch {
+    /* ignore audio failures */
+  }
+}
+
 export function NotificationsBell() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const lastCountRef = useRef<number | null>(null);
+  const [ringing, setRinging] = useState(false);
 
   const { data: notifs } = useQuery({
     queryKey: ["notifications"],
@@ -17,7 +46,7 @@ export function NotificationsBell() {
       const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(10);
       return data ?? [];
     },
-    refetchInterval: 30000,
+    refetchInterval: 15000,
   });
 
   useEffect(() => {
@@ -27,6 +56,35 @@ export function NotificationsBell() {
   }, []);
 
   const unread = (notifs ?? []).filter((n) => !n.is_read).length;
+
+  // Play chime when unread count increases
+  useEffect(() => {
+    if (lastCountRef.current !== null && unread > lastCountRef.current) {
+      playChime();
+      setRinging(true);
+      const id = setTimeout(() => setRinging(false), 2000);
+      return () => clearTimeout(id);
+    }
+    lastCountRef.current = unread;
+  }, [unread]);
+
+  // Realtime subscription for instant delivery
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      channel = supabase
+        .channel(`notif-${u.user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${u.user.id}` },
+          () => { qc.invalidateQueries({ queryKey: ["notifications"] }); qc.invalidateQueries({ queryKey: ["notifications-all"] }); },
+        )
+        .subscribe();
+    })();
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [qc]);
 
   const markAll = async () => {
     await supabase.from("notifications").update({ is_read: true }).eq("is_read", false);
@@ -38,9 +96,9 @@ export function NotificationsBell() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Bildirishnomalar"
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background/60 transition-colors hover:bg-secondary"
+        className={`relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background/60 transition-colors hover:bg-secondary ${ringing ? "animate-pulse-soft" : ""}`}
       >
-        <Bell className="h-4 w-4" />
+        <Bell className={`h-4 w-4 ${ringing ? "text-primary" : ""}`} />
         {unread > 0 && (
           <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse-soft">
             {unread}
@@ -62,7 +120,7 @@ export function NotificationsBell() {
               notifs.map((n) => (
                 <div key={n.id} className={`border-b border-border/50 px-4 py-3 last:border-0 ${!n.is_read ? "bg-primary/5" : ""}`}>
                   <div className="text-sm font-semibold">{n.title}</div>
-                  {n.body && <div className="mt-1 text-xs text-muted-foreground">{n.body}</div>}
+                  {n.body && <div className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{n.body}</div>}
                   <div className="mt-1 text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleString("uz-UZ")}</div>
                 </div>
               ))
