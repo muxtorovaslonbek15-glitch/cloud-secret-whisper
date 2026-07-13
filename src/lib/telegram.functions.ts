@@ -196,3 +196,118 @@ export const getAdminStats = createServerFn({ method: "GET" })
       allProfiles: allProfiles ?? [],
     };
   });
+
+// --- Admin user management ---
+async function assertAdmin(ctx: { supabase: any; userId: string }) {
+  const { data: isAdmin } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
+  if (!isAdmin) throw new Error("Forbidden");
+}
+
+// List all users with roles
+export const listAllUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, phone, viloyat, tuman, avatar_url, created_at")
+      .order("created_at", { ascending: false });
+    const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role");
+    const roleMap = new Map<string, string[]>();
+    (roles ?? []).forEach((r: any) => {
+      const arr = roleMap.get(r.user_id) ?? [];
+      arr.push(r.role);
+      roleMap.set(r.user_id, arr);
+    });
+    return (profiles ?? []).map((p: any) => ({ ...p, roles: roleMap.get(p.id) ?? [] }));
+  });
+
+// Set user role (replaces existing roles with the given role)
+const SetRoleInput = z.object({ user_id: z.string().uuid(), role: z.enum(["fermer", "usta", "texnika_egasi", "admin"]) });
+export const setUserRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SetRoleInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
+    const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.role });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Delete a user (auth cascade removes profile & data via FK)
+const DeleteUserInput = z.object({ user_id: z.string().uuid() });
+export const deleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => DeleteUserInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    if (data.user_id === context.userId) throw new Error("O'zingizni o'chira olmaysiz");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Send notification to specific user (also to Telegram if linked)
+const SendMsgInput = z.object({
+  user_id: z.string().uuid(),
+  title: z.string().min(1).max(200),
+  body: z.string().min(1).max(2000),
+});
+export const sendUserNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SendMsgInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("notifications").insert({
+      user_id: data.user_id,
+      title: data.title,
+      body: data.body,
+      type: "admin_message",
+    });
+    if (error) throw new Error(error.message);
+    try {
+      const { data: link } = await supabaseAdmin
+        .from("telegram_links")
+        .select("telegram_id")
+        .eq("user_id", data.user_id)
+        .maybeSingle();
+      const token = process.env.TELEGRAM_BOT_TOKEN;
+      if (link?.telegram_id && token) {
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: link.telegram_id,
+            text: `📢 ${data.title}\n\n${data.body}`,
+          }),
+        });
+      }
+    } catch {}
+    return { ok: true };
+  });
+
+// Broadcast to all users
+const BroadcastInput = z.object({ title: z.string().min(1).max(200), body: z.string().min(1).max(2000) });
+export const broadcastNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => BroadcastInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profiles } = await supabaseAdmin.from("profiles").select("id");
+    if (!profiles || profiles.length === 0) return { ok: true, count: 0 };
+    const rows = profiles.map((p: any) => ({
+      user_id: p.id,
+      title: data.title,
+      body: data.body,
+      type: "broadcast",
+    }));
+    const { error } = await supabaseAdmin.from("notifications").insert(rows);
+    if (error) throw new Error(error.message);
+    return { ok: true, count: profiles.length };
+  });
