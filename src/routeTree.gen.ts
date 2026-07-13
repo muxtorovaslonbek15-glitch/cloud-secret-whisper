@@ -9,38 +9,234 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedUstalarRouteImport } from './routes/_authenticated/ustalar'
+import { Route as AuthenticatedTexnikaRouteImport } from './routes/_authenticated/texnika'
+import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
+import { Route as AuthenticatedMurojaatRouteImport } from './routes/_authenticated/murojaat'
+import { Route as AuthenticatedMarketRouteImport } from './routes/_authenticated/market'
+import { Route as AuthenticatedDiagnostikaRouteImport } from './routes/_authenticated/diagnostika'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedBuyurtmalarRouteImport } from './routes/_authenticated/buyurtmalar'
+import { Route as AuthenticatedBildirishnomalarRouteImport } from './routes/_authenticated/bildirishnomalar'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedUstalarRoute = AuthenticatedUstalarRouteImport.update({
+  id: '/ustalar',
+  path: '/ustalar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTexnikaRoute = AuthenticatedTexnikaRouteImport.update({
+  id: '/texnika',
+  path: '/texnika',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMurojaatRoute = AuthenticatedMurojaatRouteImport.update({
+  id: '/murojaat',
+  path: '/murojaat',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMarketRoute = AuthenticatedMarketRouteImport.update({
+  id: '/market',
+  path: '/market',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDiagnostikaRoute =
+  AuthenticatedDiagnostikaRouteImport.update({
+    id: '/diagnostika',
+    path: '/diagnostika',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBuyurtmalarRoute =
+  AuthenticatedBuyurtmalarRouteImport.update({
+    id: '/buyurtmalar',
+    path: '/buyurtmalar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBildirishnomalarRoute =
+  AuthenticatedBildirishnomalarRouteImport.update({
+    id: '/bildirishnomalar',
+    path: '/bildirishnomalar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/bildirishnomalar': typeof AuthenticatedBildirishnomalarRoute
+  '/buyurtmalar': typeof AuthenticatedBuyurtmalarRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/diagnostika': typeof AuthenticatedDiagnostikaRoute
+  '/market': typeof AuthenticatedMarketRoute
+  '/murojaat': typeof AuthenticatedMurojaatRoute
+  '/profil': typeof AuthenticatedProfilRoute
+  '/texnika': typeof AuthenticatedTexnikaRoute
+  '/ustalar': typeof AuthenticatedUstalarRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/bildirishnomalar': typeof AuthenticatedBildirishnomalarRoute
+  '/buyurtmalar': typeof AuthenticatedBuyurtmalarRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/diagnostika': typeof AuthenticatedDiagnostikaRoute
+  '/market': typeof AuthenticatedMarketRoute
+  '/murojaat': typeof AuthenticatedMurojaatRoute
+  '/profil': typeof AuthenticatedProfilRoute
+  '/texnika': typeof AuthenticatedTexnikaRoute
+  '/ustalar': typeof AuthenticatedUstalarRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/bildirishnomalar': typeof AuthenticatedBildirishnomalarRoute
+  '/_authenticated/buyurtmalar': typeof AuthenticatedBuyurtmalarRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/diagnostika': typeof AuthenticatedDiagnostikaRoute
+  '/_authenticated/market': typeof AuthenticatedMarketRoute
+  '/_authenticated/murojaat': typeof AuthenticatedMurojaatRoute
+  '/_authenticated/profil': typeof AuthenticatedProfilRoute
+  '/_authenticated/texnika': typeof AuthenticatedTexnikaRoute
+  '/_authenticated/ustalar': typeof AuthenticatedUstalarRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/admin'
+    | '/bildirishnomalar'
+    | '/buyurtmalar'
+    | '/dashboard'
+    | '/diagnostika'
+    | '/market'
+    | '/murojaat'
+    | '/profil'
+    | '/texnika'
+    | '/ustalar'
+    | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/admin'
+    | '/bildirishnomalar'
+    | '/buyurtmalar'
+    | '/dashboard'
+    | '/diagnostika'
+    | '/market'
+    | '/murojaat'
+    | '/profil'
+    | '/texnika'
+    | '/ustalar'
+    | '/api/public/telegram/webhook'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/_authenticated/admin'
+    | '/_authenticated/bildirishnomalar'
+    | '/_authenticated/buyurtmalar'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/diagnostika'
+    | '/_authenticated/market'
+    | '/_authenticated/murojaat'
+    | '/_authenticated/profil'
+    | '/_authenticated/texnika'
+    | '/_authenticated/ustalar'
+    | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +244,121 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/ustalar': {
+      id: '/_authenticated/ustalar'
+      path: '/ustalar'
+      fullPath: '/ustalar'
+      preLoaderRoute: typeof AuthenticatedUstalarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/texnika': {
+      id: '/_authenticated/texnika'
+      path: '/texnika'
+      fullPath: '/texnika'
+      preLoaderRoute: typeof AuthenticatedTexnikaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profil': {
+      id: '/_authenticated/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof AuthenticatedProfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/murojaat': {
+      id: '/_authenticated/murojaat'
+      path: '/murojaat'
+      fullPath: '/murojaat'
+      preLoaderRoute: typeof AuthenticatedMurojaatRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/market': {
+      id: '/_authenticated/market'
+      path: '/market'
+      fullPath: '/market'
+      preLoaderRoute: typeof AuthenticatedMarketRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/diagnostika': {
+      id: '/_authenticated/diagnostika'
+      path: '/diagnostika'
+      fullPath: '/diagnostika'
+      preLoaderRoute: typeof AuthenticatedDiagnostikaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/buyurtmalar': {
+      id: '/_authenticated/buyurtmalar'
+      path: '/buyurtmalar'
+      fullPath: '/buyurtmalar'
+      preLoaderRoute: typeof AuthenticatedBuyurtmalarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/bildirishnomalar': {
+      id: '/_authenticated/bildirishnomalar'
+      path: '/bildirishnomalar'
+      fullPath: '/bildirishnomalar'
+      preLoaderRoute: typeof AuthenticatedBildirishnomalarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedBildirishnomalarRoute: typeof AuthenticatedBildirishnomalarRoute
+  AuthenticatedBuyurtmalarRoute: typeof AuthenticatedBuyurtmalarRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDiagnostikaRoute: typeof AuthenticatedDiagnostikaRoute
+  AuthenticatedMarketRoute: typeof AuthenticatedMarketRoute
+  AuthenticatedMurojaatRoute: typeof AuthenticatedMurojaatRoute
+  AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
+  AuthenticatedTexnikaRoute: typeof AuthenticatedTexnikaRoute
+  AuthenticatedUstalarRoute: typeof AuthenticatedUstalarRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedBildirishnomalarRoute: AuthenticatedBildirishnomalarRoute,
+  AuthenticatedBuyurtmalarRoute: AuthenticatedBuyurtmalarRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDiagnostikaRoute: AuthenticatedDiagnostikaRoute,
+  AuthenticatedMarketRoute: AuthenticatedMarketRoute,
+  AuthenticatedMurojaatRoute: AuthenticatedMurojaatRoute,
+  AuthenticatedProfilRoute: AuthenticatedProfilRoute,
+  AuthenticatedTexnikaRoute: AuthenticatedTexnikaRoute,
+  AuthenticatedUstalarRoute: AuthenticatedUstalarRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

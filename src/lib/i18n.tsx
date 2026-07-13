@@ -1,0 +1,171 @@
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+
+export type Lang = "uz" | "ru" | "en";
+
+type Dict = Record<string, string>;
+const dicts: Record<Lang, Dict> = {
+  uz: {
+    "nav.services": "Xizmatlar",
+    "nav.how": "Qanday ishlaydi",
+    "nav.stats": "Statistika",
+    "nav.reviews": "Fikrlar",
+    "nav.signIn": "Kirish",
+    "nav.signUp": "Ro'yxatdan o'tish",
+    "nav.dashboard": "Kabinetga o'tish",
+    "hero.badge": "O'zbekistondagi #1 AgroTech platforma",
+    "hero.title1": "Texnika, usta va",
+    "hero.title2": "agro xizmatlar",
+    "hero.title3": "bir bosishda",
+    "hero.desc": "Fermer, usta va texnika egalarini bog'laydigan yagona platforma.",
+    "hero.cta1": "Texnika kerakmi?",
+    "hero.cta2": "Usta chaqirish",
+    "app.dashboard": "Bosh sahifa",
+    "app.technique": "Texnika ijarasi",
+    "app.masters": "Ustalar",
+    "app.orders": "Buyurtmalar",
+    "app.diag": "AI Diagnostika",
+    "app.market": "Market",
+    "app.notif": "Bildirishnomalar",
+    "app.contact": "Murojaat / Aloqa",
+    "app.profile": "Profil",
+    "app.signOut": "Chiqish",
+    "market.title": "Agro Market",
+    "market.empty": "Hozircha mahsulotlar yo'q",
+    "market.add": "Mahsulot qo'shish",
+    "market.name": "Nomi",
+    "market.price": "Narxi",
+    "market.desc": "Tavsif",
+    "market.image": "Rasm URL",
+    "market.category": "Kategoriya",
+    "market.stock": "Zaxira",
+    "market.save": "Saqlash",
+    "market.buy": "Sotib olish",
+    "notif.title": "Bildirishnomalar",
+    "notif.empty": "Yangi bildirishnoma yo'q",
+    "notif.markAll": "Hammasini o'qilgan qilish",
+    "auth.telegram": "Telegram orqali kirish",
+    "auth.tgDialogTitle": "Telegram bilan bog'lanish",
+    "auth.tgStep1": "Quyidagi kodni nusxalang:",
+    "auth.tgStep2": "Botga o'tib /start bosing va kodni yuboring:",
+    "auth.tgOpen": "Botni ochish",
+    "auth.tgWaiting": "Bot javobini kutmoqda...",
+    "intro.tagline": "Yer, texnika, texnologiya — bir joyda",
+  },
+  ru: {
+    "nav.services": "Услуги",
+    "nav.how": "Как это работает",
+    "nav.stats": "Статистика",
+    "nav.reviews": "Отзывы",
+    "nav.signIn": "Войти",
+    "nav.signUp": "Регистрация",
+    "nav.dashboard": "Кабинет",
+    "hero.badge": "#1 AgroTech платформа в Узбекистане",
+    "hero.title1": "Техника, мастера и",
+    "hero.title2": "агро услуги",
+    "hero.title3": "в один клик",
+    "hero.desc": "Единая платформа для фермеров, мастеров и владельцев техники.",
+    "hero.cta1": "Нужна техника?",
+    "hero.cta2": "Вызвать мастера",
+    "app.dashboard": "Главная",
+    "app.technique": "Аренда техники",
+    "app.masters": "Мастера",
+    "app.orders": "Заказы",
+    "app.diag": "AI Диагностика",
+    "app.market": "Маркет",
+    "app.notif": "Уведомления",
+    "app.contact": "Обращения",
+    "app.profile": "Профиль",
+    "app.signOut": "Выйти",
+    "market.title": "Агро Маркет",
+    "market.empty": "Товаров пока нет",
+    "market.add": "Добавить товар",
+    "market.name": "Название",
+    "market.price": "Цена",
+    "market.desc": "Описание",
+    "market.image": "URL изображения",
+    "market.category": "Категория",
+    "market.stock": "Запас",
+    "market.save": "Сохранить",
+    "market.buy": "Купить",
+    "notif.title": "Уведомления",
+    "notif.empty": "Новых уведомлений нет",
+    "notif.markAll": "Отметить все как прочитанные",
+    "auth.telegram": "Войти через Telegram",
+    "auth.tgDialogTitle": "Подключение Telegram",
+    "auth.tgStep1": "Скопируйте код:",
+    "auth.tgStep2": "Откройте бота, нажмите /start и отправьте код:",
+    "auth.tgOpen": "Открыть бота",
+    "auth.tgWaiting": "Ожидание ответа бота...",
+    "intro.tagline": "Земля, техника, технологии — вместе",
+  },
+  en: {
+    "nav.services": "Services",
+    "nav.how": "How it works",
+    "nav.stats": "Stats",
+    "nav.reviews": "Reviews",
+    "nav.signIn": "Sign in",
+    "nav.signUp": "Sign up",
+    "nav.dashboard": "Dashboard",
+    "hero.badge": "#1 AgroTech platform in Uzbekistan",
+    "hero.title1": "Machinery, masters &",
+    "hero.title2": "agro services",
+    "hero.title3": "in one click",
+    "hero.desc": "A single platform connecting farmers, masters and equipment owners.",
+    "hero.cta1": "Need equipment?",
+    "hero.cta2": "Call a master",
+    "app.dashboard": "Dashboard",
+    "app.technique": "Rent machinery",
+    "app.masters": "Masters",
+    "app.orders": "Orders",
+    "app.diag": "AI Diagnostics",
+    "app.market": "Market",
+    "app.notif": "Notifications",
+    "app.contact": "Contact admin",
+    "app.profile": "Profile",
+    "app.signOut": "Sign out",
+    "market.title": "Agro Market",
+    "market.empty": "No products yet",
+    "market.add": "Add product",
+    "market.name": "Name",
+    "market.price": "Price",
+    "market.desc": "Description",
+    "market.image": "Image URL",
+    "market.category": "Category",
+    "market.stock": "Stock",
+    "market.save": "Save",
+    "market.buy": "Buy",
+    "notif.title": "Notifications",
+    "notif.empty": "No notifications",
+    "notif.markAll": "Mark all as read",
+    "auth.telegram": "Continue with Telegram",
+    "auth.tgDialogTitle": "Connect Telegram",
+    "auth.tgStep1": "Copy this code:",
+    "auth.tgStep2": "Open the bot, tap /start and send the code:",
+    "auth.tgOpen": "Open bot",
+    "auth.tgWaiting": "Waiting for bot response...",
+    "intro.tagline": "Land, machinery, technology — together",
+  },
+};
+
+type Ctx = { lang: Lang; setLang: (l: Lang) => void; t: (k: string) => string };
+const LangCtx = createContext<Ctx | null>(null);
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<Lang>("uz");
+  useEffect(() => {
+    const saved = (typeof window !== "undefined" && (localStorage.getItem("lang") as Lang)) || null;
+    if (saved && ["uz", "ru", "en"].includes(saved)) setLangState(saved);
+  }, []);
+  const setLang = (l: Lang) => {
+    setLangState(l);
+    if (typeof window !== "undefined") localStorage.setItem("lang", l);
+  };
+  const t = (k: string) => dicts[lang][k] ?? dicts.uz[k] ?? k;
+  return <LangCtx.Provider value={{ lang, setLang, t }}>{children}</LangCtx.Provider>;
+}
+
+export function useI18n() {
+  const c = useContext(LangCtx);
+  if (!c) throw new Error("useI18n must be inside LanguageProvider");
+  return c;
+}
