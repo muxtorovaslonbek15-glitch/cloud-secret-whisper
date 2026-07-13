@@ -6,8 +6,9 @@ export const Route = createFileRoute("/api/public/telegram/setup")({
       GET: async ({ request }) => {
         const token = process.env.TELEGRAM_BOT_TOKEN;
         if (!token) return Response.json({ error: "no token" }, { status: 500 });
-        const url = new URL(request.url);
-        const webhookUrl = `${url.origin}/api/public/telegram/webhook`;
+        const u = new URL(request.url);
+        const override = u.searchParams.get("url");
+        const webhookUrl = override ?? "https://project--f433cbe4-5fc7-4f21-88ec-46597ba4f536-dev.lovable.app/api/public/telegram/webhook";
         const set = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
