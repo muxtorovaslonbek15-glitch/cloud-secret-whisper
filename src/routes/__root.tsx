@@ -11,6 +11,9 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { LanguageProvider } from "@/lib/i18n";
+import { ThemeProvider } from "@/lib/theme";
+import { Toaster } from "sonner";
 
 function NotFoundComponent() {
   return (
@@ -77,14 +80,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "AGRO YORDAMCHI — Qishloq xo'jaligi texnika va ustalar platformasi" },
+      { name: "description", content: "Fermerlar uchun texnika ijarasi, usta chaqirish, AI diagnostika, hosil bozori va agro xizmatlar — barchasi bitta platformada." },
+      { name: "author", content: "AGRO YORDAMCHI" },
+      { property: "og:title", content: "AGRO YORDAMCHI — Qishloq xo'jaligi texnika va ustalar platformasi" },
+      { property: "og:description", content: "Fermerlar uchun texnika ijarasi, usta chaqirish, AI diagnostika, hosil bozori va agro xizmatlar — barchasi bitta platformada." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@agroyordamchi" },
+      { name: "twitter:title", content: "AGRO YORDAMCHI — Qishloq xo'jaligi texnika va ustalar platformasi" },
+      { name: "twitter:description", content: "Fermerlar uchun texnika ijarasi, usta chaqirish, AI diagnostika, hosil bozori va agro xizmatlar — barchasi bitta platformada." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1a71c68c-1c11-4cba-b9d0-f6130abdb97a" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1a71c68c-1c11-4cba-b9d0-f6130abdb97a" },
     ],
     links: [
       {
@@ -119,8 +126,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <ThemeProvider>
+        <LanguageProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </LanguageProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

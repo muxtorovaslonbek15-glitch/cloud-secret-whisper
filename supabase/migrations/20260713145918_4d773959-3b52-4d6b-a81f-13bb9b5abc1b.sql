@@ -1,0 +1,4 @@
+CREATE POLICY "market-images public read" ON storage.objects FOR SELECT TO authenticated, anon USING (bucket_id = 'market-images');
+CREATE POLICY "market-images admin insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'market-images' AND public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "market-images admin update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'market-images' AND public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "market-images admin delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'market-images' AND public.has_role(auth.uid(), 'admin'));
