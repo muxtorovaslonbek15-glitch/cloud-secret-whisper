@@ -296,10 +296,11 @@ function AuthPage() {
               <li><b className="text-foreground">2.</b> Bot sizga 6 xonali kod yuboradi</li>
               <li><b className="text-foreground">3.</b> Kodni pastga kiriting</li>
             </ol>
-            <a href="https://t.me/Agroyordamuz_bot?start=start" target="_blank" rel="noopener noreferrer"
+            <a href="https://t.me/Agroyordamuz_bot" target="_blank" rel="noopener noreferrer"
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#229ED9] px-4 py-3 text-sm font-semibold text-white">
-              <ExternalLink className="h-4 w-4" /> Botni ochish
+              <ExternalLink className="h-4 w-4" /> Botni ochish (@Agroyordamuz_bot)
             </a>
+            <p className="mt-2 text-center text-xs text-muted-foreground">Agar tugma ochilmasa, Telegramda qidiring: <b>@Agroyordamuz_bot</b></p>
             <form onSubmit={handleTelegramRedeem} className="mt-4 space-y-3">
               <input
                 inputMode="numeric"
