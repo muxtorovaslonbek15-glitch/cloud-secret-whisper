@@ -114,25 +114,33 @@ export const redeemTelegramCode = createServerFn({ method: "POST" })
     return { status: "ready" as const, email, password };
   });
 
-// Admin sign-in with hardcoded credentials (login: muhayyo / password: istamova2026)
-const AdminInput = z.object({ login: z.string(), password: z.string() });
-const ADMIN_LOGIN = "muhayyo";
-const ADMIN_PASSWORD = "istamova2026";
+// Admin sign-in — credentials come from server-only secrets (ADMIN_LOGIN, ADMIN_PASSWORD).
+const AdminInput = z.object({ login: z.string().max(200), password: z.string().max(500) });
 const ADMIN_EMAIL = "muhayyo@agrousta.uz";
 
 export const adminSignIn = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => AdminInput.parse(i))
   .handler(async ({ data }) => {
-    if (data.login !== ADMIN_LOGIN || data.password !== ADMIN_PASSWORD) {
+    const expectedLogin = process.env.ADMIN_LOGIN;
+    const expectedPassword = process.env.ADMIN_PASSWORD;
+    if (!expectedLogin || !expectedPassword) {
+      return { ok: false as const, error: "Admin sozlanmagan" };
+    }
+    const loginOk = constantTimeEqual(data.login, expectedLogin);
+    const passOk = constantTimeEqual(data.password, expectedPassword);
+    if (!loginOk || !passOk) {
       return { ok: false as const, error: "Login yoki parol noto'g'ri" };
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // ensure admin auth user exists with the correct password
+    // Rotate the admin Supabase auth password on every successful sign-in so
+    // the returned credential is not a long-lived shared secret.
+    const sessionPassword = randomPassword(24);
+
     let userId: string | null = null;
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: ADMIN_EMAIL,
-      password: ADMIN_PASSWORD,
+      password: sessionPassword,
       email_confirm: true,
       user_metadata: { full_name: "Muhayyo (Admin)" },
     });
@@ -142,7 +150,7 @@ export const adminSignIn = createServerFn({ method: "POST" })
       const found = users?.users.find((u) => u.email === ADMIN_EMAIL);
       userId = found?.id ?? null;
       if (userId) {
-        await supabaseAdmin.auth.admin.updateUserById(userId, { password: ADMIN_PASSWORD });
+        await supabaseAdmin.auth.admin.updateUserById(userId, { password: sessionPassword });
       }
     }
     if (!userId) return { ok: false as const, error: "Admin foydalanuvchisi yaratilmadi" };
@@ -158,7 +166,7 @@ export const adminSignIn = createServerFn({ method: "POST" })
       await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "admin" });
     }
 
-    return { ok: true as const, email: ADMIN_EMAIL, password: ADMIN_PASSWORD };
+    return { ok: true as const, email: ADMIN_EMAIL, password: sessionPassword };
   });
 
 // Aggregated admin stats
