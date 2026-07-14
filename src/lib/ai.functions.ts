@@ -42,13 +42,30 @@ Javob quyidagi tuzilishda bo'lsin:
     const parts: Array<Record<string, unknown>> = [{ text: data.problem }];
     if (data.imageUrl) {
       try {
-        const r = await fetch(data.imageUrl);
+        // SSRF guard: only allow images hosted on the project's Supabase storage.
+        const supabaseHost = new URL(process.env.SUPABASE_URL ?? "https://invalid.invalid").hostname;
+        const parsed = new URL(data.imageUrl);
+        const host = parsed.hostname.toLowerCase();
+        const isAllowedHost = parsed.protocol === "https:" && host === supabaseHost;
+        // Reject IP literals, localhost, and private/link-local ranges regardless.
+        const isIpLiteral = /^[0-9.:]+$/.test(host) || host.includes(":");
+        const isPrivate = /^(localhost|127\.|10\.|192\.168\.|169\.254\.|::1|fe80:|fc00:|fd00:)/i.test(host) ||
+          /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+        if (!isAllowedHost || isIpLiteral || isPrivate) {
+          throw new Error("imageUrl not allowed");
+        }
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        const r = await fetch(data.imageUrl, { signal: controller.signal, redirect: "error" });
+        clearTimeout(timer);
+        const ct = r.headers.get("content-type") ?? "image/jpeg";
+        if (!ct.startsWith("image/")) throw new Error("not an image");
         const buf = await r.arrayBuffer();
+        if (buf.byteLength > 8 * 1024 * 1024) throw new Error("image too large");
         const b64 = Buffer.from(buf).toString("base64");
-        const mime = r.headers.get("content-type") ?? "image/jpeg";
-        parts.push({ inline_data: { mime_type: mime, data: b64 } });
+        parts.push({ inline_data: { mime_type: ct, data: b64 } });
       } catch (e) {
-        console.error("image fetch failed", e);
+        console.error("image fetch rejected", e);
       }
     }
     const geminiRes = await fetch(
