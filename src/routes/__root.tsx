@@ -90,8 +90,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@agroyordamchi" },
       { name: "twitter:title", content: "AGRO YORDAMCHI — Qishloq xo'jaligi texnika va ustalar platformasi" },
       { name: "twitter:description", content: "Fermerlar uchun texnika ijarasi, usta chaqirish, AI diagnostika, hosil bozori va agro xizmatlar — barchasi bitta platformada." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1a71c68c-1c11-4cba-b9d0-f6130abdb97a" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1a71c68c-1c11-4cba-b9d0-f6130abdb97a" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/919c7626-1578-4c1e-9d49-61fdb75df594" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/919c7626-1578-4c1e-9d49-61fdb75df594" },
     ],
     links: [
       {
