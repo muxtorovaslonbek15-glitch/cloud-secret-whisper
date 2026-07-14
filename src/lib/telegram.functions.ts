@@ -71,8 +71,8 @@ export const redeemTelegramCode = createServerFn({ method: "POST" })
       return { status: "invalid" as const, error: "Kod muddati tugagan" };
     }
     const email = `tg${link.telegram_id}@agrousta.uz`;
-    // Deterministic password so re-login works after re-entering a fresh code
-    const password = `TG-${link.telegram_id}-agrousta-2026`;
+    // Cryptographically random password issued per redemption; never derived from telegram_id.
+    const password = randomPassword(24);
 
     let userId = link.user_id ?? null;
     if (!userId) {
@@ -88,7 +88,6 @@ export const redeemTelegramCode = createServerFn({ method: "POST" })
       });
       userId = created?.user?.id ?? null;
       if (createErr && !userId) {
-        // user probably exists — find and reset password so we can sign them in
         const { data: users } = await supabaseAdmin.auth.admin.listUsers();
         const found = users?.users.find((u) => u.email === email);
         userId = found?.id ?? null;
@@ -97,14 +96,19 @@ export const redeemTelegramCode = createServerFn({ method: "POST" })
         }
       }
     } else {
-      // ensure password is what we expect
       await supabaseAdmin.auth.admin.updateUserById(userId, { password });
     }
     if (!userId) return { status: "error" as const, error: "Foydalanuvchi yaratilmadi" };
 
+    // Invalidate the redeemed code so the same code can't be replayed.
     await supabaseAdmin
       .from("telegram_links")
-      .update({ user_id: userId, linked_at: new Date().toISOString() })
+      .update({
+        user_id: userId,
+        linked_at: new Date().toISOString(),
+        link_code: null,
+        code_expires_at: null,
+      })
       .eq("id", link.id);
 
     return { status: "ready" as const, email, password };
