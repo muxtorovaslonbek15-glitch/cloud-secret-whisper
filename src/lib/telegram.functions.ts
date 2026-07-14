@@ -1,6 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { randomBytes, timingSafeEqual } from "crypto";
+
+function randomPassword(bytes = 24) {
+  return randomBytes(bytes).toString("base64url");
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  const av = Buffer.from(a);
+  const bv = Buffer.from(b);
+  if (av.length !== bv.length) return false;
+  return timingSafeEqual(av, bv);
+}
 
 function randCode(len = 6) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
