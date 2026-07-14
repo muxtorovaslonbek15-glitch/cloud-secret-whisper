@@ -71,19 +71,24 @@ export function NotificationsBell() {
   // Realtime subscription for instant delivery
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
     (async () => {
       const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      channel = supabase
-        .channel(`notif-${u.user.id}`)
+      if (!u.user || cancelled) return;
+      const nextChannel = supabase
+        .channel(`notif-${u.user.id}-${crypto.randomUUID()}`)
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${u.user.id}` },
           () => { qc.invalidateQueries({ queryKey: ["notifications"] }); qc.invalidateQueries({ queryKey: ["notifications-all"] }); },
-        )
-        .subscribe();
+        );
+      channel = nextChannel;
+      nextChannel.subscribe();
     })();
-    return () => { if (channel) supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
+    };
   }, [qc]);
 
   const markAll = async () => {

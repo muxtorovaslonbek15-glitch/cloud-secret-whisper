@@ -1,11 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { randomBytes, timingSafeEqual } from "crypto";
-
-function randomPassword(bytes = 24) {
-  return randomBytes(bytes).toString("base64url");
-}
+import { timingSafeEqual } from "crypto";
 
 function constantTimeEqual(a: string, b: string): boolean {
   const av = Buffer.from(a);
@@ -56,14 +52,19 @@ const RedeemInput = z.object({ code: z.string().regex(/^\d{6}$/) });
 export const redeemTelegramCode = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => RedeemInput.parse(i))
   .handler(async ({ data }) => {
+    const { randomBytes } = await import("crypto");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: link } = await supabaseAdmin
+    const { data: link, error: linkError } = await supabaseAdmin
       .from("telegram_links")
       .select("*")
       .eq("link_code", data.code)
       .not("telegram_id", "is", null)
       .order("created_at", { ascending: false })
       .maybeSingle();
+    if (linkError) {
+      console.error("Telegram code lookup failed:", linkError.message);
+      return { status: "error" as const, error: "Kod tekshirilmadi. Qayta urinib ko'ring" };
+    }
     if (!link || !link.telegram_id) {
       return { status: "invalid" as const, error: "Kod noto'g'ri" };
     }
@@ -72,7 +73,7 @@ export const redeemTelegramCode = createServerFn({ method: "POST" })
     }
     const email = `tg${link.telegram_id}@agrousta.uz`;
     // Cryptographically random password issued per redemption; never derived from telegram_id.
-    const password = randomPassword(24);
+    const password = randomBytes(24).toString("base64url");
 
     let userId = link.user_id ?? null;
     if (!userId) {
@@ -101,7 +102,7 @@ export const redeemTelegramCode = createServerFn({ method: "POST" })
     if (!userId) return { status: "error" as const, error: "Foydalanuvchi yaratilmadi" };
 
     // Invalidate the redeemed code so the same code can't be replayed.
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from("telegram_links")
       .update({
         user_id: userId,
@@ -110,6 +111,10 @@ export const redeemTelegramCode = createServerFn({ method: "POST" })
         code_expires_at: null,
       })
       .eq("id", link.id);
+    if (updateError) {
+      console.error("Telegram code invalidation failed:", updateError.message);
+      return { status: "error" as const, error: "Kirish yakunlanmadi. Yangi kod oling" };
+    }
 
     return { status: "ready" as const, email, password };
   });
@@ -121,6 +126,7 @@ const ADMIN_EMAIL = "muhayyo@agrousta.uz";
 export const adminSignIn = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => AdminInput.parse(i))
   .handler(async ({ data }) => {
+    const { randomBytes } = await import("crypto");
     const expectedLogin = process.env.ADMIN_LOGIN;
     const expectedPassword = process.env.ADMIN_PASSWORD;
     if (!expectedLogin || !expectedPassword) {
@@ -135,7 +141,7 @@ export const adminSignIn = createServerFn({ method: "POST" })
 
     // Rotate the admin Supabase auth password on every successful sign-in so
     // the returned credential is not a long-lived shared secret.
-    const sessionPassword = randomPassword(24);
+    const sessionPassword = randomBytes(24).toString("base64url");
 
     let userId: string | null = null;
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({

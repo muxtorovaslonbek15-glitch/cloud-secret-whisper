@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createHash, timingSafeEqual } from "crypto";
+import { createHash, randomInt, timingSafeEqual } from "crypto";
 
 const GATEWAY = "https://api.telegram.org";
 
@@ -26,7 +26,7 @@ async function sendMessage(token: string, chatId: number, text: string) {
 
 function randNumeric(len = 6) {
   let s = "";
-  for (let i = 0; i < len; i++) s += Math.floor(Math.random() * 10).toString();
+  for (let i = 0; i < len; i++) s += randomInt(0, 10).toString();
   return s;
 }
 
@@ -58,13 +58,18 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         if (text.startsWith("/start") || text.toLowerCase().includes("kod") || text.toLowerCase().includes("code") || text === "") {
           const code = randNumeric(6);
           const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-          await supabaseAdmin.from("telegram_links").delete().eq("telegram_id", tgId).is("user_id", null);
-          await supabaseAdmin.from("telegram_links").insert({
+          const { error } = await supabaseAdmin.from("telegram_links").upsert({
             link_code: code,
             code_expires_at: expires,
             telegram_id: tgId,
             telegram_username: username ?? null,
-          });
+            linked_at: null,
+          }, { onConflict: "telegram_id" });
+          if (error) {
+            console.error("Telegram code creation failed:", error.message);
+            await sendMessage(token, chatId, "❌ Kod yaratilmadi. Iltimos, /start ni qayta yuboring.");
+            return Response.json({ ok: false }, { status: 500 });
+          }
           await sendMessage(
             token,
             chatId,
