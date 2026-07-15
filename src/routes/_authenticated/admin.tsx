@@ -13,7 +13,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import {
   Users, Tractor, Wrench, ShoppingBag, ShoppingBasket, Bot, Bell, Send,
-  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog,
+  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog, Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
