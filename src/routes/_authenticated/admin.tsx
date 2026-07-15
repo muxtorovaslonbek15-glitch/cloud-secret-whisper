@@ -13,7 +13,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import {
   Users, Tractor, Wrench, ShoppingBag, ShoppingBasket, Bot, Bell, Send,
-  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog,
+  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog, Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +48,7 @@ function AdminPage() {
   const broadcast = useServerFn(broadcastNotification);
   const qc = useQueryClient();
 
-  const [tab, setTab] = useState<"overview" | "users" | "broadcast">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "content" | "broadcast">("overview");
   const [msgTarget, setMsgTarget] = useState<null | { id: string; name: string }>(null);
   const [msgForm, setMsgForm] = useState({ title: "", body: "" });
   const [bcForm, setBcForm] = useState({ title: "", body: "" });
@@ -150,6 +150,7 @@ function AdminPage() {
         {[
           { id: "overview", label: "Umumiy", icon: ShieldCheck },
           { id: "users", label: "Foydalanuvchilar", icon: UserCog },
+          { id: "content", label: "Kontent", icon: Package },
           { id: "broadcast", label: "Ommaviy xabar", icon: Megaphone },
         ].map((t) => (
           <button
@@ -337,6 +338,9 @@ function AdminPage() {
         </div>
       )}
 
+      {tab === "content" && <ContentTab />}
+
+
       {tab === "broadcast" && (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
           <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold"><Megaphone className="h-5 w-5" /> Barcha foydalanuvchilarga ommaviy xabar</h3>
@@ -407,3 +411,111 @@ function AdminPage() {
     </AppShell>
   );
 }
+
+function ContentTab() {
+  const qc = useQueryClient();
+  const [sub, setSub] = useState<"techniques" | "masters" | "products">("techniques");
+
+  const techniquesQ = useQuery({
+    queryKey: ["admin-techniques"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("techniques").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: sub === "techniques",
+  });
+  const mastersQ = useQuery({
+    queryKey: ["admin-masters"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("masters").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: sub === "masters",
+  });
+  const productsQ = useQuery({
+    queryKey: ["admin-products"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("market_products").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: sub === "products",
+  });
+
+  const del = useMutation({
+    mutationFn: async ({ table, id }: { table: "techniques" | "masters" | "market_products"; id: string }) => {
+      const { error } = await supabase.from(table).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("O'chirildi");
+      qc.invalidateQueries({ queryKey: ["admin-techniques"] });
+      qc.invalidateQueries({ queryKey: ["admin-masters"] });
+      qc.invalidateQueries({ queryKey: ["admin-products"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const tabs = [
+    { id: "techniques", label: "Texnikalar", icon: Tractor, count: techniquesQ.data?.length },
+    { id: "masters", label: "Ustalar", icon: Wrench, count: mastersQ.data?.length },
+    { id: "products", label: "Mahsulotlar", icon: ShoppingBasket, count: productsQ.data?.length },
+  ] as const;
+
+  const activeQ = sub === "techniques" ? techniquesQ : sub === "masters" ? mastersQ : productsQ;
+  const table = sub === "products" ? "market_products" : sub;
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+      <div className="mb-4 flex flex-wrap gap-2">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSub(t.id)}
+            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition ${
+              sub === t.id ? "bg-gradient-primary text-primary-foreground" : "border border-border hover:bg-secondary"
+            }`}
+          >
+            <t.icon className="h-4 w-4" /> {t.label}
+            {typeof t.count === "number" && <span className="rounded-full bg-black/10 px-1.5 text-[10px]">{t.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {activeQ.isLoading ? (
+        <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Yuklanmoqda...</div>
+      ) : (activeQ.data?.length ?? 0) === 0 ? (
+        <p className="text-sm text-muted-foreground">Ma'lumot yo'q</p>
+      ) : (
+        <div className="space-y-2">
+          {(activeQ.data as any[]).map((item) => (
+            <div key={item.id} className="flex items-center gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+              {item.image_url && (
+                <img src={item.image_url} alt="" className="h-14 w-14 rounded-lg object-cover" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-medium">{item.name || item.full_name || item.title || "—"}</div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {item.category && <span className="mr-2">📂 {item.category}</span>}
+                  {item.price != null && <span className="mr-2">💰 {Number(item.price).toLocaleString()} so'm</span>}
+                  {item.phone && <span className="mr-2">📞 {item.phone}</span>}
+                  {(item.viloyat || item.tuman) && <span>📍 {[item.viloyat, item.tuman].filter(Boolean).join(", ")}</span>}
+                </div>
+              </div>
+              <button
+                onClick={() => { if (confirm("O'chirasizmi?")) del.mutate({ table: table as any, id: item.id }); }}
+                className="rounded-lg border border-destructive/40 px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
