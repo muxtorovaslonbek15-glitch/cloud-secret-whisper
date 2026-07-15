@@ -41,12 +41,17 @@ function MarketPage() {
   const uploadImage = async (file: File) => {
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() ?? "jpg";
+      if (file.size > 5 * 1024 * 1024) throw new Error("Rasm hajmi 5MB dan oshmasin");
+      const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
       const path = `${user.id}/${Date.now()}.${ext}`;
       const { error } = await supabase.storage.from("market-images").upload(path, file, { upsert: false, contentType: file.type });
       if (error) throw error;
-      const { data } = supabase.storage.from("market-images").getPublicUrl(path);
-      setForm((f) => ({ ...f, image_url: data.publicUrl }));
+      // Bucket is private (workspace policy) — use a long-lived signed URL.
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("market-images")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10); // 10 years
+      if (signErr || !signed?.signedUrl) throw signErr ?? new Error("Signed URL yaratilmadi");
+      setForm((f) => ({ ...f, image_url: signed.signedUrl }));
       toast.success("Rasm yuklandi");
     } catch (e) {
       toast.error((e as Error).message);
