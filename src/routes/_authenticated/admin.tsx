@@ -48,7 +48,7 @@ function AdminPage() {
   const broadcast = useServerFn(broadcastNotification);
   const qc = useQueryClient();
 
-  const [tab, setTab] = useState<"overview" | "users" | "broadcast">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "content" | "broadcast">("overview");
   const [msgTarget, setMsgTarget] = useState<null | { id: string; name: string }>(null);
   const [msgForm, setMsgForm] = useState({ title: "", body: "" });
   const [bcForm, setBcForm] = useState({ title: "", body: "" });
