@@ -338,6 +338,9 @@ function AdminPage() {
         </div>
       )}
 
+      {tab === "content" && <ContentTab />}
+
+
       {tab === "broadcast" && (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
           <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold"><Megaphone className="h-5 w-5" /> Barcha foydalanuvchilarga ommaviy xabar</h3>
