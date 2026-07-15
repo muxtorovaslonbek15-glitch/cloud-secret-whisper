@@ -150,6 +150,7 @@ function AdminPage() {
         {[
           { id: "overview", label: "Umumiy", icon: ShieldCheck },
           { id: "users", label: "Foydalanuvchilar", icon: UserCog },
+          { id: "content", label: "Kontent", icon: Package },
           { id: "broadcast", label: "Ommaviy xabar", icon: Megaphone },
         ].map((t) => (
           <button
