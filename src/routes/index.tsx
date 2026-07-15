@@ -104,12 +104,17 @@ function Index() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroImage} alt="Traktor va kombayn dalada ish jarayonida" className="h-full w-full object-cover" />
+          <img src={heroImage} alt="Traktor va kombayn dalada ish jarayonida" className="h-full w-full object-cover animate-bg-pan" />
           <div className="absolute inset-0 bg-gradient-hero" />
           {/* Floating decorative shapes */}
           <div className="absolute left-[10%] top-[20%] h-20 w-20 rounded-full bg-accent/30 blur-2xl animate-float" />
           <div className="absolute right-[15%] top-[30%] h-32 w-32 rounded-full bg-primary/30 blur-3xl animate-float" style={{ animationDelay: "1s" }} />
           <div className="absolute bottom-[15%] left-[30%] h-24 w-24 rounded-full bg-white/20 blur-2xl animate-float" style={{ animationDelay: "2s" }} />
+          {/* Drifting icons */}
+          <Tractor className="absolute left-[5%] bottom-[15%] h-10 w-10 text-white/20 animate-drift-x" />
+          <Wrench className="absolute right-[8%] bottom-[25%] h-8 w-8 text-white/20 animate-float" style={{ animationDelay: "1.5s" }} />
+          <CloudSun className="absolute left-[70%] top-[15%] h-12 w-12 text-white/25 animate-float" style={{ animationDelay: "0.7s" }} />
+          <Sparkles className="absolute left-[40%] top-[10%] h-6 w-6 text-accent/50 animate-spin-slow" />
         </div>
         <div className="relative mx-auto max-w-7xl px-6 py-24 md:py-36">
           <div className="max-w-3xl animate-slide-up-fade">

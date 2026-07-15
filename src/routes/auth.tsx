@@ -296,11 +296,17 @@ function AuthPage() {
               <li><b className="text-foreground">2.</b> Bot sizga 6 xonali kod yuboradi</li>
               <li><b className="text-foreground">3.</b> Kodni pastga kiriting</li>
             </ol>
-            <a href="https://t.me/Agroyordamuz_bot" target="_blank" rel="noopener noreferrer"
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#229ED9] px-4 py-3 text-sm font-semibold text-white">
-              <ExternalLink className="h-4 w-4" /> Botni ochish (@Agroyordamuz_bot)
-            </a>
-            <p className="mt-2 text-center text-xs text-muted-foreground">Agar tugma ochilmasa, Telegramda qidiring: <b>@Agroyordamuz_bot</b></p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <a href="https://t.me/Agroyordamuz_bot" target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-lg bg-[#229ED9] px-4 py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.02]">
+                <ExternalLink className="h-4 w-4" /> Brauzerda ochish
+              </a>
+              <a href="tg://resolve?domain=Agroyordamuz_bot"
+                className="flex items-center justify-center gap-2 rounded-lg border-2 border-[#229ED9] bg-white px-4 py-3 text-sm font-semibold text-[#229ED9] transition-transform hover:scale-[1.02]">
+                <Send className="h-4 w-4" /> Ilovada ochish
+              </a>
+            </div>
+            <p className="mt-2 text-center text-xs text-muted-foreground">Agar tugmalar ishlamasa, Telegramda qidiring: <b className="text-foreground">@Agroyordamuz_bot</b></p>
             <form onSubmit={handleTelegramRedeem} className="mt-4 space-y-3">
               <input
                 inputMode="numeric"
