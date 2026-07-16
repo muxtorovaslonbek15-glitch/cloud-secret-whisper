@@ -363,3 +363,35 @@ export const broadcastNotification = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, count: profiles.length };
   });
+// Generic admin delete for a whitelisted table
+const AdminDeleteInput = z.object({
+  table: z.enum(["techniques", "masters", "market_products", "market_orders", "orders", "contact_messages", "ai_diagnostics", "notifications", "telegram_links"]),
+  id: z.string().uuid(),
+});
+export const adminDeleteRow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => AdminDeleteInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from(data.table).delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Generic status update for orders / market_orders / contact_messages
+const AdminUpdateStatusInput = z.object({
+  table: z.enum(["orders", "market_orders", "contact_messages"]),
+  id: z.string().uuid(),
+  status: z.string().min(1).max(50),
+});
+export const adminUpdateStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => AdminUpdateStatusInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from(data.table).update({ status: data.status }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
