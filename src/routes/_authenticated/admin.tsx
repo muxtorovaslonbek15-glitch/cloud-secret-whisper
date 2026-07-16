@@ -9,14 +9,17 @@ import {
   deleteUser,
   sendUserNotification,
   broadcastNotification,
+  adminDeleteRow,
+  adminUpdateStatus,
 } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
 import {
   Users, Tractor, Wrench, ShoppingBag, ShoppingBasket, Bot, Bell, Send,
-  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog, Package,
+  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog, Package, ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Admin panel — AGRO YORDAMCHI" }] }),
@@ -46,13 +49,17 @@ function AdminPage() {
   const removeUser = useServerFn(deleteUser);
   const sendMsg = useServerFn(sendUserNotification);
   const broadcast = useServerFn(broadcastNotification);
+  const delRow = useServerFn(adminDeleteRow);
+  const updStatus = useServerFn(adminUpdateStatus);
   const qc = useQueryClient();
 
   const [tab, setTab] = useState<"overview" | "users" | "content" | "broadcast">("overview");
+  const [detailKey, setDetailKey] = useState<string | null>(null);
   const [msgTarget, setMsgTarget] = useState<null | { id: string; name: string }>(null);
   const [msgForm, setMsgForm] = useState({ title: "", body: "" });
   const [bcForm, setBcForm] = useState({ title: "", body: "" });
   const [userSearch, setUserSearch] = useState("");
+
 
   useEffect(() => {
     (async () => {
@@ -178,16 +185,34 @@ function AdminPage() {
             {Object.entries(STAT_META).map(([key, meta]) => {
               const Icon = meta.icon;
               return (
-                <div key={key} className="rounded-2xl border border-border bg-card p-5 shadow-soft transition-transform hover:scale-[1.02] animate-fade-in">
+                <button
+                  key={key}
+                  onClick={() => setDetailKey(key)}
+                  className="text-left rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:scale-[1.03] hover:shadow-lift hover:border-primary/50 animate-fade-in"
+                >
                   <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${meta.color} text-white`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="text-3xl font-bold">{data.counts[key] ?? 0}</div>
                   <div className="mt-1 text-xs text-muted-foreground">{meta.label}</div>
-                </div>
+                  <div className="mt-2 text-[10px] font-medium text-primary">Batafsil →</div>
+                </button>
               );
             })}
           </div>
+
+          {detailKey && (
+            <DetailPanel
+              entityKey={detailKey}
+              data={data}
+              onClose={() => setDetailKey(null)}
+              onDelete={(table: string, id: string) => delRow({ data: { table: table as any, id } }).then(() => { toast.success("O'chirildi"); qc.invalidateQueries({ queryKey: ["admin-stats"] }); }).catch((e: Error) => toast.error(e.message))}
+              onStatus={(table: string, id: string, status: string) => updStatus({ data: { table: table as any, id, status } }).then(() => { toast.success("Yangilandi"); qc.invalidateQueries({ queryKey: ["admin-stats"] }); }).catch((e: Error) => toast.error(e.message))}
+              onMessage={(user_id: string, name: string) => { setMsgTarget({ id: user_id, name }); setMsgForm({ title: "", body: "" }); }}
+
+            />
+          )}
+
 
           {/* Market orders */}
           <div className="mt-8 rounded-2xl border border-border bg-card p-5 shadow-soft">
@@ -519,3 +544,165 @@ function ContentTab() {
   );
 }
 
+
+function DetailPanel({ entityKey, data, onClose, onDelete, onStatus, onMessage }: {
+  entityKey: string;
+  data: any;
+  onClose: () => void;
+  onDelete: (table: string, id: string) => void;
+  onStatus: (table: string, id: string, status: string) => void;
+  onMessage: (user_id: string, name: string) => void;
+}) {
+  const meta = STAT_META[entityKey];
+  const Icon = meta?.icon ?? Package;
+
+  const map: Record<string, { rows: any[]; table?: string }> = {
+    profiles: { rows: data.allProfiles },
+    techniques: { rows: data.allTechniques, table: "techniques" },
+    masters: { rows: data.allMasters, table: "masters" },
+    orders: { rows: data.allOrders, table: "orders" },
+    market_products: { rows: data.allProducts, table: "market_products" },
+    market_orders: { rows: data.recentMarketOrders, table: "market_orders" },
+    contact_messages: { rows: data.recentMessages, table: "contact_messages" },
+    ai_diagnostics: { rows: data.allDiagnostics, table: "ai_diagnostics" },
+    notifications: { rows: data.allNotifications, table: "notifications" },
+    telegram_links: { rows: data.allTelegramLinks, table: "telegram_links" },
+  };
+  const { rows = [], table } = map[entityKey] ?? {};
+
+  const orderStatuses = ["yangi", "tayyorlanmoqda", "yetkazilmoqda", "yetkazildi", "bekor"];
+  const msgStatuses = ["yangi", "korildi", "yopildi"];
+
+  return (
+    <div className="mt-6 rounded-2xl border border-border bg-card p-5 shadow-soft animate-fade-in">
+      <div className="mb-4 flex items-center gap-3">
+        <button onClick={onClose} className="rounded-lg border border-border p-1.5 hover:bg-secondary"><ArrowLeft className="h-4 w-4" /></button>
+        <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${meta?.color ?? "from-primary to-primary"} text-white`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <h3 className="text-lg font-semibold">{meta?.label ?? entityKey}</h3>
+        <span className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">{rows.length}</span>
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Ma'lumot yo'q</p>
+      ) : (
+        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+          {rows.map((r: any) => (
+            <div key={r.id} className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  {entityKey === "profiles" && (
+                    <>
+                      <div className="font-semibold">{r.full_name || "—"}</div>
+                      <div className="text-xs text-muted-foreground">{r.phone || "—"} {(r.viloyat || r.tuman) && `· ${[r.viloyat, r.tuman].filter(Boolean).join(", ")}`}</div>
+                    </>
+                  )}
+                  {(entityKey === "techniques" || entityKey === "masters" || entityKey === "market_products") && (
+                    <div className="flex items-center gap-3">
+                      {r.image_url && <img src={r.image_url} alt="" className="h-12 w-12 rounded-lg object-cover" />}
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold">{r.name || r.full_name || r.title || "—"}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {r.category && <span className="mr-2">📂 {r.category}</span>}
+                          {r.price != null && <span className="mr-2">💰 {Number(r.price).toLocaleString()} so'm</span>}
+                          {r.phone && <span className="mr-2">📞 {r.phone}</span>}
+                          {(r.viloyat || r.tuman) && <span>📍 {[r.viloyat, r.tuman].filter(Boolean).join(", ")}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {entityKey === "orders" && (
+                    <>
+                      <div className="font-semibold">{r.type || "buyurtma"} · {Number(r.price ?? 0).toLocaleString()} so'm</div>
+                      <div className="text-xs text-muted-foreground">Holat: {r.status}</div>
+                    </>
+                  )}
+                  {entityKey === "market_orders" && (
+                    <>
+                      <div className="font-semibold">{r.market_products?.name ?? "Mahsulot"} × {r.quantity}</div>
+                      <div className="text-xs text-muted-foreground">📞 {r.phone} · 📍 {r.address}</div>
+                      <div className="text-xs font-semibold text-primary mt-1">{Number(r.total_price).toLocaleString()} so'm</div>
+                    </>
+                  )}
+                  {entityKey === "contact_messages" && (
+                    <>
+                      <div className="font-semibold">{r.subject} <span className="rounded bg-primary/10 px-1.5 text-[10px] uppercase text-primary">{r.kind}</span></div>
+                      <div className="text-xs text-muted-foreground">👤 {r.full_name} · 📞 {r.phone}</div>
+                      <p className="mt-1 whitespace-pre-wrap text-xs">{r.message}</p>
+                    </>
+                  )}
+                  {entityKey === "ai_diagnostics" && (
+                    <>
+                      <div className="font-semibold">{r.crop || r.title || "Diagnostika"}</div>
+                      <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{r.result || r.diagnosis || r.description}</p>
+                    </>
+                  )}
+                  {entityKey === "notifications" && (
+                    <>
+                      <div className="font-semibold">{r.title}</div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{r.body}</p>
+                      <div className="text-[10px] text-muted-foreground">{r.type}</div>
+                    </>
+                  )}
+                  {entityKey === "telegram_links" && (
+                    <>
+                      <div className="font-semibold">@{r.telegram_username || "unknown"}</div>
+                      <div className="text-xs text-muted-foreground">TG ID: {r.telegram_id} · {r.linked_at ? `✅ ${new Date(r.linked_at).toLocaleString("uz-UZ")}` : "⏳ kutilmoqda"}</div>
+                    </>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  {r.created_at && <div className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleString("uz-UZ")}</div>}
+                  {r.status && (
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px]">{r.status}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Status controls */}
+              {table === "market_orders" && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {orderStatuses.map((s) => (
+                    <button key={s} onClick={() => onStatus(table, r.id, s)} className={`rounded-full border px-2 py-0.5 text-[10px] transition ${r.status === s ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-secondary"}`}>{s}</button>
+                  ))}
+                </div>
+              )}
+              {table === "contact_messages" && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {msgStatuses.map((s) => (
+                    <button key={s} onClick={() => onStatus(table, r.id, s)} className={`rounded-full border px-2 py-0.5 text-[10px] transition ${r.status === s ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-secondary"}`}>{s}</button>
+                  ))}
+                  {r.user_id && (
+                    <button onClick={() => onMessage(r.user_id, r.full_name || r.phone || "user")} className="rounded-full border border-primary/40 px-2 py-0.5 text-[10px] text-primary hover:bg-primary/10">
+                      <Send className="mr-1 inline h-3 w-3" /> Javob
+                    </button>
+                  )}
+                </div>
+              )}
+              {entityKey === "profiles" && (
+                <div className="mt-2 flex gap-1">
+                  <button onClick={() => onMessage(r.id, r.full_name || r.phone || "user")} className="rounded-full border border-primary/40 px-2 py-0.5 text-[10px] text-primary hover:bg-primary/10">
+                    <Send className="mr-1 inline h-3 w-3" /> Xabar
+                  </button>
+                </div>
+              )}
+
+              {/* Delete */}
+              {table && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => { if (confirm("O'chirasizmi?")) onDelete(table, r.id); }}
+                    className="rounded-lg border border-destructive/40 px-2 py-1 text-[10px] text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="mr-1 inline h-3 w-3" /> O'chirish
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

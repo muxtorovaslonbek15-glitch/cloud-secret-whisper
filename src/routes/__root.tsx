@@ -92,15 +92,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Fermerlar uchun texnika ijarasi, usta chaqirish, AI diagnostika, hosil bozori va agro xizmatlar — barchasi bitta platformada." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/919c7626-1578-4c1e-9d49-61fdb75df594" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/919c7626-1578-4c1e-9d49-61fdb75df594" },
+      { name: "theme-color", content: "#16a34a" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "AgroYordam" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icon-512.png" },
+    ],
+    scripts: [
+      {
+        children: `if('serviceWorker' in navigator){const h=location.hostname;const bad=h.startsWith('id-preview--')||h.startsWith('preview--')||h.endsWith('.lovableproject.com')||h.endsWith('.lovableproject-dev.com')||h.endsWith('.beta.lovable.dev')||(window.self!==window.top)||new URLSearchParams(location.search).get('sw')==='off';if(bad){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{try{if(((r.active&&r.active.scriptURL)||'').endsWith('/sw.js'))r.unregister();}catch(e){}}));}}`,
+      },
     ],
   }),
+
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
