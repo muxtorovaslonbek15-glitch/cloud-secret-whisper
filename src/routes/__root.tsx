@@ -99,8 +99,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icon-512.png" },
+    ],
+    scripts: [
+      {
+        children: `if('serviceWorker' in navigator){const h=location.hostname;const bad=h.startsWith('id-preview--')||h.startsWith('preview--')||h.endsWith('.lovableproject.com')||h.endsWith('.lovableproject-dev.com')||h.endsWith('.beta.lovable.dev')||window.self!==window.top||new URLSearchParams(location.search).get('sw')==='off';if(bad){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if((r.active&&r.active.scriptURL||'').endsWith('/sw.js'))r.unregister();}));}}`,
+      },
     ],
   }),
+  head: () => ({
+    meta: [
+      { name: "theme-color", content: "#16a34a" },
+    ],
+  }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
