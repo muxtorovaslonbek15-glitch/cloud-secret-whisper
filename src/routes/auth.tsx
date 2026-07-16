@@ -46,7 +46,7 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -55,7 +55,20 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Ro'yxatdan o'tildi! Emailingizni tekshiring.");
+        if (data.session) {
+          toast.success("Ro'yxatdan o'tildi! Xush kelibsiz!");
+          navigate({ to: "/dashboard" });
+        } else {
+          // Auto-confirm on: try immediate sign-in
+          const { error: sErr } = await supabase.auth.signInWithPassword({ email, password });
+          if (sErr) {
+            toast.success("Ro'yxatdan o'tildi! Emailingizni tasdiqlang va kiring.");
+            setMode("signin");
+          } else {
+            toast.success("Xush kelibsiz!");
+            navigate({ to: "/dashboard" });
+          }
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;

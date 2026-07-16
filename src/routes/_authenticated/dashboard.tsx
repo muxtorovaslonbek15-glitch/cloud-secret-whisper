@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Tractor, Wrench, ShoppingBag, Bot, TrendingUp, Clock, Sprout, CloudSun, Leaf, Sparkles } from "lucide-react";
+import heroBg from "@/assets/hero-agrousta.jpg";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -46,31 +47,33 @@ function DashboardPage() {
     <AppShell title="Bosh sahifa">
       {/* Animated background layer */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        {/* Animated gradient wash */}
+        {/* Hero image background with Ken Burns effect */}
         <div
-          className="absolute inset-0 animate-bg-pan opacity-70"
+          className="absolute inset-0 animate-bg-pan"
           style={{
-            backgroundImage:
-              "radial-gradient(ellipse at 20% 20%, oklch(0.85 0.15 140 / 0.35), transparent 55%), radial-gradient(ellipse at 80% 30%, oklch(0.85 0.16 85 / 0.30), transparent 55%), radial-gradient(ellipse at 50% 90%, oklch(0.7 0.15 200 / 0.25), transparent 60%), linear-gradient(135deg, oklch(0.97 0.03 130), oklch(0.94 0.05 145))",
+            backgroundImage: `url(${heroBg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         />
-        {/* Soft grid overlay */}
+        {/* Green gradient overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-background/85 via-background/75 to-primary/20 backdrop-blur-[2px]" />
+        {/* Animated color wash */}
         <div
-          className="absolute inset-0 opacity-[0.08]"
+          className="absolute inset-0 animate-bg-pan opacity-60 mix-blend-soft-light"
           style={{
             backgroundImage:
-              "linear-gradient(oklch(0.4 0.1 145) 1px, transparent 1px), linear-gradient(90deg, oklch(0.4 0.1 145) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
+              "radial-gradient(ellipse at 20% 20%, oklch(0.85 0.15 140 / 0.55), transparent 55%), radial-gradient(ellipse at 80% 30%, oklch(0.85 0.16 85 / 0.45), transparent 55%), radial-gradient(ellipse at 50% 90%, oklch(0.7 0.15 200 / 0.4), transparent 60%)",
           }}
         />
         {/* Floating decorative icons */}
-        <Tractor className="absolute left-[8%] top-[15%] h-16 w-16 text-primary/15 animate-drift-x" />
-        <Leaf className="absolute right-[12%] top-[10%] h-14 w-14 text-primary/20 animate-float" style={{ animationDelay: "1s" }} />
-        <Sprout className="absolute left-[15%] bottom-[18%] h-20 w-20 text-primary/15 animate-float" style={{ animationDelay: "2s" }} />
-        <CloudSun className="absolute right-[8%] bottom-[22%] h-20 w-20 text-accent/25 animate-drift-x" style={{ animationDelay: "3s" }} />
-        <Wrench className="absolute left-[45%] top-[8%] h-10 w-10 text-accent/20 animate-spin-slow" />
-        <Sparkles className="absolute right-[30%] top-[45%] h-8 w-8 text-accent/30 animate-pulse-soft" />
-        <Sparkles className="absolute left-[30%] top-[60%] h-6 w-6 text-primary/30 animate-pulse-soft" style={{ animationDelay: "1.5s" }} />
+        <Tractor className="absolute left-[8%] top-[15%] h-16 w-16 text-primary/25 animate-drift-x" />
+        <Leaf className="absolute right-[12%] top-[10%] h-14 w-14 text-primary/30 animate-float" style={{ animationDelay: "1s" }} />
+        <Sprout className="absolute left-[15%] bottom-[18%] h-20 w-20 text-primary/25 animate-float" style={{ animationDelay: "2s" }} />
+        <CloudSun className="absolute right-[8%] bottom-[22%] h-20 w-20 text-accent/35 animate-drift-x" style={{ animationDelay: "3s" }} />
+        <Wrench className="absolute left-[45%] top-[8%] h-10 w-10 text-accent/30 animate-spin-slow" />
+        <Sparkles className="absolute right-[30%] top-[45%] h-8 w-8 text-accent/40 animate-pulse-soft" />
+        <Sparkles className="absolute left-[30%] top-[60%] h-6 w-6 text-primary/40 animate-pulse-soft" style={{ animationDelay: "1.5s" }} />
       </div>
 
       <div className="relative">
