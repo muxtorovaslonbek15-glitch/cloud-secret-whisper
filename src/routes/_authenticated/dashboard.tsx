@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Tractor, Wrench, ShoppingBag, Bot, TrendingUp, Clock, Sprout, CloudSun, Leaf, Sparkles } from "lucide-react";
+import heroBg from "@/assets/hero-agrousta.jpg";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
