@@ -49,13 +49,17 @@ function AdminPage() {
   const removeUser = useServerFn(deleteUser);
   const sendMsg = useServerFn(sendUserNotification);
   const broadcast = useServerFn(broadcastNotification);
+  const delRow = useServerFn(adminDeleteRow);
+  const updStatus = useServerFn(adminUpdateStatus);
   const qc = useQueryClient();
 
   const [tab, setTab] = useState<"overview" | "users" | "content" | "broadcast">("overview");
+  const [detailKey, setDetailKey] = useState<string | null>(null);
   const [msgTarget, setMsgTarget] = useState<null | { id: string; name: string }>(null);
   const [msgForm, setMsgForm] = useState({ title: "", body: "" });
   const [bcForm, setBcForm] = useState({ title: "", body: "" });
   const [userSearch, setUserSearch] = useState("");
+
 
   useEffect(() => {
     (async () => {
