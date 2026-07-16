@@ -217,6 +217,20 @@ export const getAdminStats = createServerFn({ method: "GET" })
       .from("profiles")
       .select("id, full_name, phone, viloyat, tuman, created_at")
       .order("created_at", { ascending: false });
+    const { data: allTechniques } = await supabaseAdmin
+      .from("techniques").select("*").order("created_at", { ascending: false });
+    const { data: allMasters } = await supabaseAdmin
+      .from("masters").select("*").order("created_at", { ascending: false });
+    const { data: allProducts } = await supabaseAdmin
+      .from("market_products").select("*").order("created_at", { ascending: false });
+    const { data: allOrders } = await supabaseAdmin
+      .from("orders").select("*").order("created_at", { ascending: false }).limit(200);
+    const { data: allDiagnostics } = await supabaseAdmin
+      .from("ai_diagnostics").select("*").order("created_at", { ascending: false }).limit(200);
+    const { data: allNotifications } = await supabaseAdmin
+      .from("notifications").select("*").order("created_at", { ascending: false }).limit(200);
+    const { data: allTelegramLinks } = await supabaseAdmin
+      .from("telegram_links").select("*").order("linked_at", { ascending: false, nullsFirst: false });
     return {
       counts,
       recentOrders: recentOrders ?? [],
@@ -224,8 +238,16 @@ export const getAdminStats = createServerFn({ method: "GET" })
       recentMarketOrders: recentMarketOrders ?? [],
       recentMessages: recentMessages ?? [],
       allProfiles: allProfiles ?? [],
+      allTechniques: allTechniques ?? [],
+      allMasters: allMasters ?? [],
+      allProducts: allProducts ?? [],
+      allOrders: allOrders ?? [],
+      allDiagnostics: allDiagnostics ?? [],
+      allNotifications: allNotifications ?? [],
+      allTelegramLinks: allTelegramLinks ?? [],
     };
   });
+
 
 // --- Admin user management ---
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
