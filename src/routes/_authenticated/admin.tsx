@@ -9,14 +9,17 @@ import {
   deleteUser,
   sendUserNotification,
   broadcastNotification,
+  adminDeleteRow,
+  adminUpdateStatus,
 } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
 import {
   Users, Tractor, Wrench, ShoppingBag, ShoppingBasket, Bot, Bell, Send,
-  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog, Package,
+  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog, Package, ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Admin panel — AGRO YORDAMCHI" }] }),
