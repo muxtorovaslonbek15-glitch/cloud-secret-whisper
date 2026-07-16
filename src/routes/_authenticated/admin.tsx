@@ -206,9 +206,10 @@ function AdminPage() {
               entityKey={detailKey}
               data={data}
               onClose={() => setDetailKey(null)}
-              onDelete={(table, id) => delRow({ data: { table: table as any, id } }).then(() => { toast.success("O'chirildi"); qc.invalidateQueries({ queryKey: ["admin-stats"] }); }).catch((e: Error) => toast.error(e.message))}
-              onStatus={(table, id, status) => updStatus({ data: { table: table as any, id, status } }).then(() => { toast.success("Yangilandi"); qc.invalidateQueries({ queryKey: ["admin-stats"] }); }).catch((e: Error) => toast.error(e.message))}
-              onMessage={(user_id, name) => { setMsgTarget({ id: user_id, name }); setMsgForm({ title: "", body: "" }); }}
+              onDelete={(table: string, id: string) => delRow({ data: { table: table as any, id } }).then(() => { toast.success("O'chirildi"); qc.invalidateQueries({ queryKey: ["admin-stats"] }); }).catch((e: Error) => toast.error(e.message))}
+              onStatus={(table: string, id: string, status: string) => updStatus({ data: { table: table as any, id, status } }).then(() => { toast.success("Yangilandi"); qc.invalidateQueries({ queryKey: ["admin-stats"] }); }).catch((e: Error) => toast.error(e.message))}
+              onMessage={(user_id: string, name: string) => { setMsgTarget({ id: user_id, name }); setMsgForm({ title: "", body: "" }); }}
+
             />
           )}
 
