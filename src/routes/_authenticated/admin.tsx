@@ -185,16 +185,33 @@ function AdminPage() {
             {Object.entries(STAT_META).map(([key, meta]) => {
               const Icon = meta.icon;
               return (
-                <div key={key} className="rounded-2xl border border-border bg-card p-5 shadow-soft transition-transform hover:scale-[1.02] animate-fade-in">
+                <button
+                  key={key}
+                  onClick={() => setDetailKey(key)}
+                  className="text-left rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:scale-[1.03] hover:shadow-lift hover:border-primary/50 animate-fade-in"
+                >
                   <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${meta.color} text-white`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="text-3xl font-bold">{data.counts[key] ?? 0}</div>
                   <div className="mt-1 text-xs text-muted-foreground">{meta.label}</div>
-                </div>
+                  <div className="mt-2 text-[10px] font-medium text-primary">Batafsil →</div>
+                </button>
               );
             })}
           </div>
+
+          {detailKey && (
+            <DetailPanel
+              entityKey={detailKey}
+              data={data}
+              onClose={() => setDetailKey(null)}
+              onDelete={(table, id) => delRow({ data: { table: table as any, id } }).then(() => { toast.success("O'chirildi"); qc.invalidateQueries({ queryKey: ["admin-stats"] }); }).catch((e: Error) => toast.error(e.message))}
+              onStatus={(table, id, status) => updStatus({ data: { table: table as any, id, status } }).then(() => { toast.success("Yangilandi"); qc.invalidateQueries({ queryKey: ["admin-stats"] }); }).catch((e: Error) => toast.error(e.message))}
+              onMessage={(user_id, name) => { setMsgTarget({ id: user_id, name }); setMsgForm({ title: "", body: "" }); }}
+            />
+          )}
+
 
           {/* Market orders */}
           <div className="mt-8 rounded-2xl border border-border bg-card p-5 shadow-soft">
