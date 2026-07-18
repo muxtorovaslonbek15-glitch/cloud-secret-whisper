@@ -404,3 +404,83 @@ export const adminUpdateStatus = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// --- Staff helper (admin OR yordamchi_admin) ---
+async function assertStaff(ctx: { supabase: any; userId: string }) {
+  const { data } = await ctx.supabase.rpc("is_staff", { _user_id: ctx.userId });
+  if (!data) throw new Error("Forbidden");
+}
+
+// --- Moderation: masters / techniques ---
+const ModerateInput = z.object({
+  table: z.enum(["masters", "techniques"]),
+  id: z.string().uuid(),
+  status: z.enum(["tasdiqlangan", "rad_etildi", "kutilmoqda"]),
+  note: z.string().max(500).optional(),
+});
+export const moderateApplication = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => ModerateInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from(data.table)
+      .update({ moderation_status: data.status, moderation_note: data.note ?? null })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// --- Contact reply (admin/staff) ---
+const ReplyInput = z.object({
+  message_id: z.string().uuid(),
+  body: z.string().min(1).max(2000),
+});
+export const replyToContact = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => ReplyInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("contact_replies").insert({
+      message_id: data.message_id,
+      sender_id: context.userId,
+      sender_role: "admin",
+      body: data.body,
+    });
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("contact_messages").update({ status: "javob_yozildi" }).eq("id", data.message_id);
+    return { ok: true };
+  });
+
+// --- List pending applications ---
+export const listPendingApplications = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: mm }, { data: tt }] = await Promise.all([
+      supabaseAdmin.from("masters").select("*").eq("moderation_status", "kutilmoqda").order("created_at", { ascending: false }),
+      supabaseAdmin.from("techniques").select("*").eq("moderation_status", "kutilmoqda").order("created_at", { ascending: false }),
+    ]);
+    const uids = [...new Set([...(mm ?? []).map((m: any) => m.user_id), ...(tt ?? []).map((t: any) => t.owner_id)])];
+    const { data: profiles } = uids.length
+      ? await supabaseAdmin.from("profiles").select("id, full_name, phone").in("id", uids)
+      : { data: [] as any[] };
+    const pmap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    return {
+      masters: (mm ?? []).map((m: any) => ({ ...m, profile: pmap.get(m.user_id) ?? null })),
+      techniques: (tt ?? []).map((t: any) => ({ ...t, profile: pmap.get(t.owner_id) ?? null })),
+    };
+  });
+
+// --- Delete own account ---
+export const deleteOwnAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
