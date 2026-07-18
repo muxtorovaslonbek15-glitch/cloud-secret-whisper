@@ -42,7 +42,7 @@ const STAT_META: Record<string, { label: string; icon: any; color: string }> = {
   telegram_links: { label: "Telegram bog'lanishlar", icon: Send, color: "from-sky-500 to-sky-600" },
 };
 
-const ROLES = ["fermer", "usta", "texnika_egasi", "admin"] as const;
+const ROLES = ["fermer", "usta", "texnika_egasi", "yordamchi_admin", "admin"] as const;
 
 function AdminPage() {
   const navigate = useNavigate();
