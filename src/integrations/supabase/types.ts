@@ -86,6 +86,41 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_replies: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          message_id: string
+          sender_id: string | null
+          sender_role: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          message_id: string
+          sender_id?: string | null
+          sender_role: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+          sender_id?: string | null
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_replies_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "contact_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_orders: {
         Row: {
           address: string
@@ -190,6 +225,8 @@ export type Database = {
           hourly_rate: number | null
           id: string
           is_available: boolean
+          moderation_note: string | null
+          moderation_status: string
           rating: number | null
           specialty: string
           tuman: string | null
@@ -205,6 +242,8 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           is_available?: boolean
+          moderation_note?: string | null
+          moderation_status?: string
           rating?: number | null
           specialty: string
           tuman?: string | null
@@ -220,6 +259,8 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           is_available?: boolean
+          moderation_note?: string | null
+          moderation_status?: string
           rating?: number | null
           specialty?: string
           tuman?: string | null
@@ -331,10 +372,12 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bg_choice: string
           bio: string | null
           created_at: string
           full_name: string | null
           id: string
+          notification_prefs: Json
           phone: string | null
           tuman: string | null
           updated_at: string
@@ -342,10 +385,12 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bg_choice?: string
           bio?: string | null
           created_at?: string
           full_name?: string | null
           id: string
+          notification_prefs?: Json
           phone?: string | null
           tuman?: string | null
           updated_at?: string
@@ -353,10 +398,12 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bg_choice?: string
           bio?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          notification_prefs?: Json
           phone?: string | null
           tuman?: string | null
           updated_at?: string
@@ -396,6 +443,8 @@ export type Database = {
           id: string
           image_url: string | null
           is_available: boolean
+          moderation_note: string | null
+          moderation_status: string
           name: string
           owner_id: string
           rating: number | null
@@ -414,6 +463,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean
+          moderation_note?: string | null
+          moderation_status?: string
           name: string
           owner_id: string
           rating?: number | null
@@ -432,6 +483,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean
+          moderation_note?: string | null
+          moderation_status?: string
           name?: string
           owner_id?: string
           rating?: number | null
@@ -516,6 +569,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
