@@ -301,7 +301,7 @@ export const deleteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => DeleteUserInput.parse(i))
   .handler(async ({ data, context }) => {
-    await assertStaff(context);
+    await assertAdmin(context);
     if (data.user_id === context.userId) throw new Error("O'zingizni o'chira olmaysiz");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
