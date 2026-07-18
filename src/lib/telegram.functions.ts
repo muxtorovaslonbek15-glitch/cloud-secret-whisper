@@ -179,11 +179,8 @@ export const adminSignIn = createServerFn({ method: "POST" })
 export const getAdminStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Forbidden");
+    const { data: isStaff } = await context.supabase.rpc("is_staff", { _user_id: context.userId });
+    if (!isStaff) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const tables = ["profiles", "techniques", "masters", "orders", "market_products", "market_orders", "contact_messages", "ai_diagnostics", "notifications", "telegram_links"] as const;
     const counts: Record<string, number> = {};
