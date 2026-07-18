@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Tractor, Wrench, ShoppingBag, Bot, User, LogOut, Menu, X, ShoppingBasket, Bell, ShieldCheck, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Tractor, Wrench, ShoppingBag, Bot, User, LogOut, Menu, X, ShoppingBasket, Bell, ShieldCheck, MessageSquare, Settings } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ const navItems = [
   { to: "/diagnostika", key: "app.diag", icon: Bot },
   { to: "/bildirishnomalar", key: "app.notif", icon: Bell },
   { to: "/murojaat", key: "app.contact", icon: MessageSquare },
+  { to: "/sozlamalar", key: "app.settings", icon: Settings },
   { to: "/profil", key: "app.profile", icon: User },
 ] as const;
 
@@ -32,7 +33,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
     (async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
-      const { data } = await supabase.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
+      const { data } = await supabase.rpc("is_staff", { _user_id: u.user.id });
       setIsAdmin(!!data);
     })();
   }, []);
