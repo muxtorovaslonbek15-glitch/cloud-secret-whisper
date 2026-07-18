@@ -56,20 +56,24 @@ function AdminPage() {
   const updStatus = useServerFn(adminUpdateStatus);
   const qc = useQueryClient();
 
-  const [tab, setTab] = useState<"overview" | "users" | "content" | "broadcast">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "content" | "broadcast" | "moderation">("overview");
   const [detailKey, setDetailKey] = useState<string | null>(null);
   const [msgTarget, setMsgTarget] = useState<null | { id: string; name: string }>(null);
   const [msgForm, setMsgForm] = useState({ title: "", body: "" });
   const [bcForm, setBcForm] = useState({ title: "", body: "" });
   const [userSearch, setUserSearch] = useState("");
-
+  const [isMainAdmin, setIsMainAdmin] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return navigate({ to: "/auth" });
-      const { data } = await supabase.rpc("has_role", { _user_id: userData.user.id, _role: "admin" });
-      if (!data) navigate({ to: "/dashboard" });
+      const [{ data: staff }, { data: adm }] = await Promise.all([
+        supabase.rpc("is_staff", { _user_id: userData.user.id }),
+        supabase.rpc("has_role", { _user_id: userData.user.id, _role: "admin" }),
+      ]);
+      if (!staff) navigate({ to: "/dashboard" });
+      setIsMainAdmin(!!adm);
     })();
   }, [navigate]);
 
