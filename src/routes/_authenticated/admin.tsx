@@ -11,9 +11,6 @@ import {
   broadcastNotification,
   adminDeleteRow,
   adminUpdateStatus,
-  listPendingApplications,
-  moderateApplication,
-  replyToContact,
 } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
 import {
@@ -42,7 +39,7 @@ const STAT_META: Record<string, { label: string; icon: any; color: string }> = {
   telegram_links: { label: "Telegram bog'lanishlar", icon: Send, color: "from-sky-500 to-sky-600" },
 };
 
-const ROLES = ["fermer", "usta", "texnika_egasi", "yordamchi_admin", "admin"] as const;
+const ROLES = ["fermer", "usta", "texnika_egasi", "admin"] as const;
 
 function AdminPage() {
   const navigate = useNavigate();
@@ -56,24 +53,20 @@ function AdminPage() {
   const updStatus = useServerFn(adminUpdateStatus);
   const qc = useQueryClient();
 
-  const [tab, setTab] = useState<"overview" | "users" | "content" | "broadcast" | "moderation">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "content" | "broadcast">("overview");
   const [detailKey, setDetailKey] = useState<string | null>(null);
   const [msgTarget, setMsgTarget] = useState<null | { id: string; name: string }>(null);
   const [msgForm, setMsgForm] = useState({ title: "", body: "" });
   const [bcForm, setBcForm] = useState({ title: "", body: "" });
   const [userSearch, setUserSearch] = useState("");
-  const [isMainAdmin, setIsMainAdmin] = useState(false);
+
 
   useEffect(() => {
     (async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return navigate({ to: "/auth" });
-      const [{ data: staff }, { data: adm }] = await Promise.all([
-        supabase.rpc("is_staff", { _user_id: userData.user.id }),
-        supabase.rpc("has_role", { _user_id: userData.user.id, _role: "admin" }),
-      ]);
-      if (!staff) navigate({ to: "/dashboard" });
-      setIsMainAdmin(!!adm);
+      const { data } = await supabase.rpc("has_role", { _user_id: userData.user.id, _role: "admin" });
+      if (!data) navigate({ to: "/dashboard" });
     })();
   }, [navigate]);
 
@@ -163,7 +156,6 @@ function AdminPage() {
       <div className="mb-6 flex flex-wrap gap-2">
         {[
           { id: "overview", label: "Umumiy", icon: ShieldCheck },
-          { id: "moderation", label: "Moderatsiya", icon: Check },
           { id: "users", label: "Foydalanuvchilar", icon: UserCog },
           { id: "content", label: "Kontent", icon: Package },
           { id: "broadcast", label: "Ommaviy xabar", icon: Megaphone },
@@ -372,10 +364,6 @@ function AdminPage() {
       )}
 
       {tab === "content" && <ContentTab />}
-
-      {tab === "moderation" && <ModerationTab />}
-
-
 
 
       {tab === "broadcast" && (
@@ -715,104 +703,6 @@ function DetailPanel({ entityKey, data, onClose, onDelete, onStatus, onMessage }
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function ModerationTab() {
-  const qc = useQueryClient();
-  const list = useServerFn(listPendingApplications);
-  const moderate = useServerFn(moderateApplication);
-  const { data, isLoading } = useQuery({ queryKey: ["pending-apps"], queryFn: () => list() });
-
-  const act = useMutation({
-    mutationFn: (v: { table: "masters" | "techniques"; id: string; status: "tasdiqlangan" | "rad_etildi"; note?: string }) =>
-      moderate({ data: v }),
-    onSuccess: () => {
-      toast.success("Yangilandi");
-      qc.invalidateQueries({ queryKey: ["pending-apps"] });
-      qc.invalidateQueries({ queryKey: ["admin-stats"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  if (isLoading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Yuklanmoqda...</div>;
-  const masters = data?.masters ?? [];
-  const techs = data?.techniques ?? [];
-
-  return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-          <Wrench className="h-5 w-5" /> Kutilayotgan usta arizalari ({masters.length})
-        </h3>
-        {masters.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Kutilmoqda emas</p>
-        ) : (
-          <div className="space-y-2">
-            {masters.map((m: any) => (
-              <PendingCard
-                key={m.id}
-                title={`${m.profile?.full_name ?? "Foydalanuvchi"} — ${m.specialty}`}
-                subtitle={`${m.viloyat}${m.tuman ? ", " + m.tuman : ""} · ${m.experience_years} yil${m.hourly_rate ? " · " + Number(m.hourly_rate).toLocaleString() + " so'm/soat" : ""}`}
-                bio={m.bio}
-                phone={m.profile?.phone}
-                onApprove={() => act.mutate({ table: "masters", id: m.id, status: "tasdiqlangan" })}
-                onReject={() => act.mutate({ table: "masters", id: m.id, status: "rad_etildi", note: "Ariza rad etildi" })}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-          <Tractor className="h-5 w-5" /> Kutilayotgan texnika arizalari ({techs.length})
-        </h3>
-        {techs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Kutilmoqda emas</p>
-        ) : (
-          <div className="space-y-2">
-            {techs.map((t: any) => (
-              <PendingCard
-                key={t.id}
-                title={`${t.name}${t.brand ? " (" + t.brand + ")" : ""}`}
-                subtitle={`${t.profile?.full_name ?? "Egasi"} · ${t.viloyat}${t.tuman ? ", " + t.tuman : ""}${t.daily_price ? " · " + Number(t.daily_price).toLocaleString() + " so'm/kun" : ""}`}
-                bio={t.description}
-                phone={t.profile?.phone}
-                image={t.image_url}
-                onApprove={() => act.mutate({ table: "techniques", id: t.id, status: "tasdiqlangan" })}
-                onReject={() => act.mutate({ table: "techniques", id: t.id, status: "rad_etildi", note: "Ariza rad etildi" })}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PendingCard({ title, subtitle, bio, phone, image, onApprove, onReject }: {
-  title: string; subtitle: string; bio?: string | null; phone?: string | null; image?: string | null;
-  onApprove: () => void; onReject: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-start gap-3 rounded-lg border border-border bg-secondary/30 p-3">
-      {image && <img src={image} alt="" className="h-16 w-16 rounded object-cover" />}
-      <div className="flex-1 min-w-[220px] text-sm">
-        <div className="font-semibold">{title}</div>
-        <div className="text-xs text-muted-foreground">{subtitle}</div>
-        {phone && <div className="mt-1 text-xs">📞 <a href={`tel:${phone}`} className="hover:text-primary">{phone}</a></div>}
-        {bio && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{bio}</p>}
-      </div>
-      <div className="flex gap-2">
-        <button onClick={onApprove} className="flex items-center gap-1 rounded-lg bg-green-500/20 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-500/30">
-          <Check className="h-3 w-3" /> Tasdiqlash
-        </button>
-        <button onClick={onReject} className="flex items-center gap-1 rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20">
-          <X className="h-3 w-3" /> Rad etish
-        </button>
-      </div>
     </div>
   );
 }
