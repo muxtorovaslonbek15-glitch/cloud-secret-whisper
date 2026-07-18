@@ -33,7 +33,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
     (async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
-      const { data } = await supabase.rpc("is_staff", { _user_id: u.user.id });
+      const { data } = await supabase.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
       setIsAdmin(!!data);
     })();
   }, []);
