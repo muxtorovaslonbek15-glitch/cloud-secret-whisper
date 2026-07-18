@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
-import { Wrench, MapPin, Star, Phone, Plus, X, Award } from "lucide-react";
+import { Wrench, MapPin, Star, Phone, Plus, X, Award, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,7 +18,11 @@ function UstalarPage() {
   const { data: masters, isLoading } = useQuery({
     queryKey: ["masters"],
     queryFn: async () => {
-      const { data: mastersData } = await supabase.from("masters").select("*").order("rating", { ascending: false });
+      const { data: mastersData } = await supabase
+        .from("masters")
+        .select("*")
+        .or(`moderation_status.eq.tasdiqlangan,user_id.eq.${user.id}`)
+        .order("rating", { ascending: false });
       if (!mastersData || mastersData.length === 0) return [];
       const userIds = mastersData.map((m) => m.user_id);
       const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url, phone").in("id", userIds);
@@ -60,7 +64,12 @@ function UstalarPage() {
       ) : masters && masters.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {masters.map((m) => (
-            <div key={m.id} className="rounded-2xl border border-border bg-card p-6 shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift">
+            <div key={m.id} className="relative rounded-2xl border border-border bg-card p-6 shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift">
+              {m.moderation_status === "kutilmoqda" && m.user_id === user.id && (
+                <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-yellow-500/20 px-2.5 py-1 text-[10px] font-semibold text-yellow-700">
+                  <Clock className="h-3 w-3" /> Tekshirilmoqda
+                </div>
+              )}
               <div className="flex items-start gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-primary text-lg font-bold text-primary-foreground">
                   {m.profile?.full_name?.[0] || "U"}
@@ -84,7 +93,7 @@ function UstalarPage() {
                 </div>
               )}
               <button
-                disabled={!m.is_available || m.user_id === user.id || callMaster.isPending}
+                disabled={!m.is_available || m.user_id === user.id || m.moderation_status !== "tasdiqlangan" || callMaster.isPending}
                 onClick={() => callMaster.mutate({ id: m.id, user_id: m.user_id, hourly_rate: m.hourly_rate, specialty: m.specialty })}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
@@ -135,10 +144,11 @@ function AddMasterModal({ userId, onClose, onCreated }: { userId: string; onClos
       viloyat: form.viloyat,
       tuman: form.tuman || null,
       bio: form.bio || null,
+      moderation_status: "kutilmoqda",
     });
     setSaving(false);
     if (error) toast.error(error.message);
-    else { toast.success("Usta profili yaratildi!"); onCreated(); }
+    else { toast.success("Arizangiz yuborildi! Admin tasdiqlagach ro'yxatda ko'rinadi."); onCreated(); }
   };
 
   return (
