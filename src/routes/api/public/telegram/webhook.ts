@@ -73,7 +73,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           await sendMessage(
             token,
             chatId,
-            `👋 <b>AGRO YORDAMCHI</b> ga xush kelibsiz!\n\n🔐 Sizning ro'yxatdan o'tish kodingiz:\n\n<b>${code}</b>\n\nSaytga qayting va shu kodni kiriting.\n⏰ Kod 15 daqiqa amal qiladi.\n\n🌐 agroyordamchi.lovable.app`,
+            `👋 <b>AGRO YORDAMCHI</b> ga xush kelibsiz!\n\n🔐 Sizning ro'yxatdan o'tish kodingiz:\n\n<b>${code}</b>\n\nSaytga qayting va shu kodni kiriting.\n⏰ Kod 15 daqiqa amal qiladi.\n\n🌐 https://agroyordamchiuz.vercel.app`,
           );
           return Response.json({ ok: true });
         }
