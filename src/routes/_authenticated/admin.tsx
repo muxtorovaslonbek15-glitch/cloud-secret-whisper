@@ -373,6 +373,10 @@ function AdminPage() {
 
       {tab === "content" && <ContentTab />}
 
+      {tab === "moderation" && <ModerationTab />}
+
+
+
 
       {tab === "broadcast" && (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
