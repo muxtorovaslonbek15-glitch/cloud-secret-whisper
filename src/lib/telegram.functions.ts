@@ -23,7 +23,6 @@ export const startTelegramLink = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const code = randCode(6);
     const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    // upsert one link row per user
     await context.supabase
       .from("telegram_links")
       .upsert(
@@ -46,8 +45,6 @@ export const checkTelegramLink = createServerFn({ method: "GET" })
   });
 
 // Redeem a 6-digit code the Telegram bot sent to the user.
-// Bot creates the row with telegram_id + code on /start.
-// User enters that code on the site; we create/find an auth user and return credentials.
 const RedeemInput = z.object({ code: z.string().regex(/^\d{6}$/) });
 export const redeemTelegramCode = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => RedeemInput.parse(i))
@@ -72,7 +69,6 @@ export const redeemTelegramCode = createServerFn({ method: "POST" })
       return { status: "invalid" as const, error: "Kod muddati tugagan" };
     }
     const email = `tg${link.telegram_id}@agrousta.uz`;
-    // Cryptographically random password issued per redemption; never derived from telegram_id.
     const password = randomBytes(24).toString("base64url");
 
     let userId = link.user_id ?? null;
@@ -101,7 +97,6 @@ export const redeemTelegramCode = createServerFn({ method: "POST" })
     }
     if (!userId) return { status: "error" as const, error: "Foydalanuvchi yaratilmadi" };
 
-    // Invalidate the redeemed code so the same code can't be replayed.
     const { error: updateError } = await supabaseAdmin
       .from("telegram_links")
       .update({
@@ -139,8 +134,6 @@ export const adminSignIn = createServerFn({ method: "POST" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Rotate the admin Supabase auth password on every successful sign-in so
-    // the returned credential is not a long-lived shared secret.
     const sessionPassword = randomBytes(24).toString("base64url");
 
     let userId: string | null = null;
@@ -161,7 +154,6 @@ export const adminSignIn = createServerFn({ method: "POST" })
     }
     if (!userId) return { ok: false as const, error: "Admin foydalanuvchisi yaratilmadi" };
 
-    // ensure admin role
     const { data: existing } = await supabaseAdmin
       .from("user_roles")
       .select("id")
@@ -175,12 +167,17 @@ export const adminSignIn = createServerFn({ method: "POST" })
     return { ok: true as const, email: ADMIN_EMAIL, password: sessionPassword };
   });
 
+// --- Admin helper (admin only) ---
+async function assertAdmin(ctx: { supabase: any; userId: string }) {
+  const { data: isAdmin } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
+  if (!isAdmin) throw new Error("Forbidden");
+}
+
 // Aggregated admin stats
 export const getAdminStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isStaff } = await context.supabase.rpc("is_staff", { _user_id: context.userId });
-    if (!isStaff) throw new Error("Forbidden");
+    await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const tables = ["profiles", "techniques", "masters", "orders", "market_products", "market_orders", "contact_messages", "ai_diagnostics", "notifications", "telegram_links"] as const;
     const counts: Record<string, number> = {};
@@ -245,18 +242,11 @@ export const getAdminStats = createServerFn({ method: "GET" })
     };
   });
 
-
-// --- Admin user management ---
-async function assertAdmin(ctx: { supabase: any; userId: string }) {
-  const { data: isAdmin } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
-  if (!isAdmin) throw new Error("Forbidden");
-}
-
 // List all users with roles
 export const listAllUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context);
+    await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
@@ -273,21 +263,12 @@ export const listAllUsers = createServerFn({ method: "GET" })
   });
 
 // Set user role (replaces existing roles with the given role)
-const SetRoleInput = z.object({
-  user_id: z.string().uuid(),
-  role: z.enum(["fermer", "usta", "texnika_egasi", "admin", "yordamchi_admin"]),
-});
+const SetRoleInput = z.object({ user_id: z.string().uuid(), role: z.enum(["fermer", "usta", "texnika_egasi", "admin"]) });
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SetRoleInput.parse(i))
   .handler(async ({ data, context }) => {
-    // Only the main admin can grant elevated roles.
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    const { data: isYordamchi } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "yordamchi_admin" });
-    if (!isAdmin && !isYordamchi) throw new Error("Forbidden");
-    if (!isAdmin && (data.role === "admin" || data.role === "yordamchi_admin")) {
-      throw new Error("Yordamchi admin admin rolini bera olmaydi");
-    }
+    await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
     const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.role });
@@ -319,7 +300,7 @@ export const sendUserNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SendMsgInput.parse(i))
   .handler(async ({ data, context }) => {
-    await assertStaff(context);
+    await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("notifications").insert({
       user_id: data.user_id,
@@ -355,7 +336,7 @@ export const broadcastNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => BroadcastInput.parse(i))
   .handler(async ({ data, context }) => {
-    await assertStaff(context);
+    await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profiles } = await supabaseAdmin.from("profiles").select("id");
     if (!profiles || profiles.length === 0) return { ok: true, count: 0 };
@@ -369,6 +350,7 @@ export const broadcastNotification = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, count: profiles.length };
   });
+
 // Generic admin delete for a whitelisted table
 const AdminDeleteInput = z.object({
   table: z.enum(["techniques", "masters", "market_products", "market_orders", "orders", "contact_messages", "ai_diagnostics", "notifications", "telegram_links"]),
@@ -378,7 +360,7 @@ export const adminDeleteRow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => AdminDeleteInput.parse(i))
   .handler(async ({ data, context }) => {
-    await assertStaff(context);
+    await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from(data.table).delete().eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -395,81 +377,11 @@ export const adminUpdateStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => AdminUpdateStatusInput.parse(i))
   .handler(async ({ data, context }) => {
-    await assertStaff(context);
+    await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from(data.table).update({ status: data.status }).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
-  });
-
-// --- Staff helper (admin OR yordamchi_admin) ---
-async function assertStaff(ctx: { supabase: any; userId: string }) {
-  const { data } = await ctx.supabase.rpc("is_staff", { _user_id: ctx.userId });
-  if (!data) throw new Error("Forbidden");
-}
-
-// --- Moderation: masters / techniques ---
-const ModerateInput = z.object({
-  table: z.enum(["masters", "techniques"]),
-  id: z.string().uuid(),
-  status: z.enum(["tasdiqlangan", "rad_etildi", "kutilmoqda"]),
-  note: z.string().max(500).optional(),
-});
-export const moderateApplication = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => ModerateInput.parse(i))
-  .handler(async ({ data, context }) => {
-    await assertStaff(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from(data.table)
-      .update({ moderation_status: data.status, moderation_note: data.note ?? null })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-// --- Contact reply (admin/staff) ---
-const ReplyInput = z.object({
-  message_id: z.string().uuid(),
-  body: z.string().min(1).max(2000),
-});
-export const replyToContact = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => ReplyInput.parse(i))
-  .handler(async ({ data, context }) => {
-    await assertStaff(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("contact_replies").insert({
-      message_id: data.message_id,
-      sender_id: context.userId,
-      sender_role: "admin",
-      body: data.body,
-    });
-    if (error) throw new Error(error.message);
-    await supabaseAdmin.from("contact_messages").update({ status: "javob_yozildi" }).eq("id", data.message_id);
-    return { ok: true };
-  });
-
-// --- List pending applications ---
-export const listPendingApplications = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertStaff(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [{ data: mm }, { data: tt }] = await Promise.all([
-      supabaseAdmin.from("masters").select("*").eq("moderation_status", "kutilmoqda").order("created_at", { ascending: false }),
-      supabaseAdmin.from("techniques").select("*").eq("moderation_status", "kutilmoqda").order("created_at", { ascending: false }),
-    ]);
-    const uids = [...new Set([...(mm ?? []).map((m: any) => m.user_id), ...(tt ?? []).map((t: any) => t.owner_id)])];
-    const { data: profiles } = uids.length
-      ? await supabaseAdmin.from("profiles").select("id, full_name, phone").in("id", uids)
-      : { data: [] as any[] };
-    const pmap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
-    return {
-      masters: (mm ?? []).map((m: any) => ({ ...m, profile: pmap.get(m.user_id) ?? null })),
-      techniques: (tt ?? []).map((t: any) => ({ ...t, profile: pmap.get(t.owner_id) ?? null })),
-    };
   });
 
 // --- Delete own account ---
