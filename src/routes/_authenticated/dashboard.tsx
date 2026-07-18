@@ -4,12 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Tractor, Wrench, ShoppingBag, Bot, TrendingUp, Clock, Sprout, CloudSun, Leaf, Sparkles, ShoppingBasket, Calendar } from "lucide-react";
 import heroBg from "@/assets/hero-agrousta.jpg";
+import bgSunset from "@/assets/sunset-field.jpg";
+import bgRows from "@/assets/rows-field.jpg";
+import bgWheat from "@/assets/golden-wheat.jpg";
+import bgTractor from "@/assets/tractor-work.jpg";
+import bgMeadow from "@/assets/green-meadow.jpg";
 import { useI18n } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
 });
+
+const bgImageMap: Record<string, string> = {
+  agro: heroBg,
+  sunset: bgSunset,
+  rows: bgRows,
+  wheat: bgWheat,
+  tractor: bgTractor,
+  meadow: bgMeadow,
+};
 
 function DashboardPage() {
   const { user } = Route.useRouteContext();
@@ -62,7 +76,7 @@ function DashboardPage() {
           <div
             className="absolute inset-0 animate-bg-pan"
             style={{
-              backgroundImage: bg === "agro" ? `url(${heroBg})` : undefined,
+              backgroundImage: bg !== "field" ? `url(${bgImageMap[bg] || heroBg})` : undefined,
               backgroundSize: "cover",
               backgroundPosition: "center",
               backgroundColor: bg === "field" ? "oklch(0.95 0.05 140)" : undefined,
