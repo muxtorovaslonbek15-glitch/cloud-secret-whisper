@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
-import { Tractor, MapPin, Calendar, Search, Plus, X } from "lucide-react";
+import { Tractor, MapPin, Calendar, Search, Plus, X, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -23,9 +23,13 @@ function TexnikaPage() {
   });
 
   const { data: techniques, isLoading } = useQuery({
-    queryKey: ["techniques", search, viloyat],
+    queryKey: ["techniques", search, viloyat, user.id],
     queryFn: async () => {
-      let q = supabase.from("techniques").select("*, category:technique_categories(name)").order("created_at", { ascending: false });
+      let q = supabase
+        .from("techniques")
+        .select("*, category:technique_categories(name)")
+        .or(`moderation_status.eq.tasdiqlangan,owner_id.eq.${user.id}`)
+        .order("created_at", { ascending: false });
       if (search) q = q.ilike("name", `%${search}%`);
       if (viloyat) q = q.eq("viloyat", viloyat);
       return (await q).data ?? [];
@@ -90,7 +94,12 @@ function TexnikaPage() {
       ) : techniques && techniques.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {techniques.map((t) => (
-            <div key={t.id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift">
+            <div key={t.id} className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift">
+              {t.moderation_status === "kutilmoqda" && t.owner_id === user.id && (
+                <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-full bg-yellow-500/90 px-2.5 py-1 text-[10px] font-semibold text-white">
+                  <Clock className="h-3 w-3" /> Tekshirilmoqda
+                </div>
+              )}
               <div className="flex h-40 items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
                 {t.image_url ? (
                   <img src={t.image_url} alt={t.name} className="h-full w-full object-cover" />
@@ -110,7 +119,7 @@ function TexnikaPage() {
                   </div>
                 )}
                 <button
-                  disabled={!t.is_available || t.owner_id === user.id || bookMutation.isPending}
+                  disabled={!t.is_available || t.owner_id === user.id || t.moderation_status !== "tasdiqlangan" || bookMutation.isPending}
                   onClick={() => bookMutation.mutate({ id: t.id, owner_id: t.owner_id, daily_price: t.daily_price })}
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft disabled:opacity-50"
                 >
@@ -189,11 +198,12 @@ function AddTechniqueModal({
       viloyat: form.viloyat,
       tuman: form.tuman || null,
       description: form.description || null,
+      moderation_status: "kutilmoqda",
     });
     setSaving(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Texnika qo'shildi!");
+      toast.success("Arizangiz yuborildi! Admin tasdiqlagach ro'yxatda ko'rinadi.");
       onCreated();
     }
   };
