@@ -15,7 +15,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import {
   Users, Tractor, Wrench, ShoppingBag, ShoppingBasket, Bot, Bell, Send,
-  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog, Package, ArrowLeft,
+  Loader2, ShieldCheck, MessageSquare, Truck, Check, Trash2, X, Megaphone, UserCog, Package, ArrowLeft, ClipboardCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,7 +53,7 @@ function AdminPage() {
   const updStatus = useServerFn(adminUpdateStatus);
   const qc = useQueryClient();
 
-  const [tab, setTab] = useState<"overview" | "users" | "content" | "broadcast">("overview");
+  const [tab, setTab] = useState<"overview" | "moderation" | "users" | "content" | "broadcast">("overview");
   const [detailKey, setDetailKey] = useState<string | null>(null);
   const [msgTarget, setMsgTarget] = useState<null | { id: string; name: string }>(null);
   const [msgForm, setMsgForm] = useState({ title: "", body: "" });
@@ -82,11 +82,52 @@ function AdminPage() {
     enabled: tab === "users",
   });
 
+  const { data: pendingMasters, isLoading: pmLoading } = useQuery({
+    queryKey: ["pending-masters"],
+    queryFn: async () => {
+      const { data: mm, error } = await supabase.from("masters").select("*").eq("moderation_status", "kutilmoqda").order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!mm || mm.length === 0) return [];
+      const ids = mm.map((m: any) => m.user_id);
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, phone").in("id", ids);
+      const pmap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+      return mm.map((m: any) => ({ ...m, profile: pmap.get(m.user_id) ?? null }));
+    },
+    enabled: tab === "moderation",
+  });
+
+  const { data: pendingTechniques, isLoading: ptLoading } = useQuery({
+    queryKey: ["pending-techniques"],
+    queryFn: async () => {
+      const { data: tt, error } = await supabase.from("techniques").select("*").eq("moderation_status", "kutilmoqda").order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!tt || tt.length === 0) return [];
+      const ids = tt.map((t: any) => t.owner_id);
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, phone").in("id", ids);
+      const pmap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+      return tt.map((t: any) => ({ ...t, profile: pmap.get(t.owner_id) ?? null }));
+    },
+    enabled: tab === "moderation",
+  });
+
+  const moderateMut = useMutation({
+    mutationFn: async (v: { table: "masters" | "techniques"; id: string; status: "tasdiqlangan" | "rad_etildi" }) => {
+      const { error } = await supabase.from(v.table).update({ moderation_status: v.status }).eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Yangilandi");
+      qc.invalidateQueries({ queryKey: ["pending-masters"] });
+      qc.invalidateQueries({ queryKey: ["pending-techniques"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const updateOrderStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase.from("market_orders").update({ status }).eq("id", id);
       if (error) throw error;
-      // Notify the customer
       const order = data?.recentMarketOrders.find((o: any) => o.id === id);
       if (order?.customer_id) {
         await supabase.from("notifications").insert({
@@ -140,6 +181,8 @@ function AdminPage() {
     return (u.full_name ?? "").toLowerCase().includes(q) || (u.phone ?? "").toLowerCase().includes(q);
   });
 
+  const pendingCount = (pendingMasters?.length ?? 0) + (pendingTechniques?.length ?? 0);
+
   return (
     <AppShell title="Admin panel">
       <div className="mb-6 flex items-center gap-3">
@@ -156,6 +199,7 @@ function AdminPage() {
       <div className="mb-6 flex flex-wrap gap-2">
         {[
           { id: "overview", label: "Umumiy", icon: ShieldCheck },
+          { id: "moderation", label: "Moderatsiya", icon: ClipboardCheck },
           { id: "users", label: "Foydalanuvchilar", icon: UserCog },
           { id: "content", label: "Kontent", icon: Package },
           { id: "broadcast", label: "Ommaviy xabar", icon: Megaphone },
@@ -163,13 +207,16 @@ function AdminPage() {
           <button
             key={t.id}
             onClick={() => setTab(t.id as any)}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+            className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
               tab === t.id
                 ? "bg-gradient-primary text-primary-foreground shadow-soft"
                 : "border border-border bg-card hover:bg-secondary"
             }`}
           >
             <t.icon className="h-4 w-4" /> {t.label}
+            {t.id === "moderation" && pendingCount > 0 && (
+              <span className="ml-1 rounded-full bg-destructive px-1.5 text-[10px] text-destructive-foreground">{pendingCount}</span>
+            )}
           </button>
         ))}
       </div>
@@ -300,6 +347,61 @@ function AdminPage() {
             )}
           </div>
         </>
+      )}
+
+      {tab === "moderation" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+              <Wrench className="h-5 w-5" /> Kutilayotgan usta arizalari ({pendingMasters?.length ?? 0})
+            </h3>
+            {pmLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Yuklanmoqda...</div>
+            ) : !pendingMasters || pendingMasters.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Kutilayotgan ariza yo'q</p>
+            ) : (
+              <div className="space-y-2">
+                {pendingMasters.map((m: any) => (
+                  <PendingCard
+                    key={m.id}
+                    title={`${m.profile?.full_name ?? "Foydalanuvchi"} — ${m.specialty}`}
+                    subtitle={`${m.viloyat}${m.tuman ? ", " + m.tuman : ""} · ${m.experience_years} yil${m.hourly_rate ? " · " + Number(m.hourly_rate).toLocaleString() + " so'm/soat" : ""}`}
+                    bio={m.bio}
+                    phone={m.profile?.phone}
+                    onApprove={() => moderateMut.mutate({ table: "masters", id: m.id, status: "tasdiqlangan" })}
+                    onReject={() => moderateMut.mutate({ table: "masters", id: m.id, status: "rad_etildi" })}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+              <Tractor className="h-5 w-5" /> Kutilayotgan texnika arizalari ({pendingTechniques?.length ?? 0})
+            </h3>
+            {ptLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Yuklanmoqda...</div>
+            ) : !pendingTechniques || pendingTechniques.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Kutilayotgan ariza yo'q</p>
+            ) : (
+              <div className="space-y-2">
+                {pendingTechniques.map((t: any) => (
+                  <PendingCard
+                    key={t.id}
+                    title={`${t.name}${t.brand ? " (" + t.brand + ")" : ""}`}
+                    subtitle={`${t.profile?.full_name ?? "Egasi"} · ${t.viloyat}${t.tuman ? ", " + t.tuman : ""}${t.daily_price ? " · " + Number(t.daily_price).toLocaleString() + " so'm/kun" : ""}`}
+                    bio={t.description}
+                    phone={t.profile?.phone}
+                    image={t.image_url}
+                    onApprove={() => moderateMut.mutate({ table: "techniques", id: t.id, status: "tasdiqlangan" })}
+                    onReject={() => moderateMut.mutate({ table: "techniques", id: t.id, status: "rad_etildi" })}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {tab === "users" && (
@@ -437,6 +539,31 @@ function AdminPage() {
   );
 }
 
+function PendingCard({ title, subtitle, bio, phone, image, onApprove, onReject }: {
+  title: string; subtitle: string; bio?: string | null; phone?: string | null; image?: string | null;
+  onApprove: () => void; onReject: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-start gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+      {image && <img src={image} alt="" className="h-16 w-16 rounded object-cover" />}
+      <div className="flex-1 min-w-[220px] text-sm">
+        <div className="font-semibold">{title}</div>
+        <div className="text-xs text-muted-foreground">{subtitle}</div>
+        {phone && <div className="mt-1 text-xs">📞 <a href={`tel:${phone}`} className="hover:text-primary">{phone}</a></div>}
+        {bio && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{bio}</p>}
+      </div>
+      <div className="flex gap-2">
+        <button onClick={onApprove} className="flex items-center gap-1 rounded-lg bg-green-500/20 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-500/30">
+          <Check className="h-3 w-3" /> Tasdiqlash
+        </button>
+        <button onClick={onReject} className="flex items-center gap-1 rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20">
+          <X className="h-3 w-3" /> Rad etish
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ContentTab() {
   const qc = useQueryClient();
   const [sub, setSub] = useState<"techniques" | "masters" | "products">("techniques");
@@ -528,6 +655,7 @@ function ContentTab() {
                   {item.price != null && <span className="mr-2">💰 {Number(item.price).toLocaleString()} so'm</span>}
                   {item.phone && <span className="mr-2">📞 {item.phone}</span>}
                   {(item.viloyat || item.tuman) && <span>📍 {[item.viloyat, item.tuman].filter(Boolean).join(", ")}</span>}
+                  {item.moderation_status && <span className="ml-2">· {item.moderation_status}</span>}
                 </div>
               </div>
               <button
