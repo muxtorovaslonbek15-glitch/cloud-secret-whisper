@@ -163,6 +163,7 @@ function AdminPage() {
       <div className="mb-6 flex flex-wrap gap-2">
         {[
           { id: "overview", label: "Umumiy", icon: ShieldCheck },
+          { id: "moderation", label: "Moderatsiya", icon: Check },
           { id: "users", label: "Foydalanuvchilar", icon: UserCog },
           { id: "content", label: "Kontent", icon: Package },
           { id: "broadcast", label: "Ommaviy xabar", icon: Megaphone },
