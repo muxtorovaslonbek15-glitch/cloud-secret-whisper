@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/sozlamalar")({
 });
 
 const NOTIF_KEYS = ["admin_reply", "order_updates", "broadcast", "moderation"] as const;
-const BGS = ["agro", "field", "minimal"] as const;
+const BGS = ["agro", "field", "sunset", "rows", "wheat", "tractor", "meadow", "minimal"] as const;
 
 function SettingsPage() {
   const { user } = Route.useRouteContext();
@@ -73,6 +73,17 @@ function SettingsPage() {
     }
   };
 
+  const bgLabels: Record<string, string> = {
+    agro: "🌾 " + t("settings.bgAgro"),
+    field: "🌱 " + t("settings.bgField"),
+    sunset: "🌅 Quyosh botishi",
+    rows: "🚜 Ekin qatorlari",
+    wheat: "🌾 Oltin bug'doy",
+    tractor: "🚜 Traktor",
+    meadow: "🌿 Yashil o'tloq",
+    minimal: "✨ " + t("settings.bgMinimal"),
+  };
+
   return (
     <AppShell title={t("settings.title")}>
       <div className="mb-6 flex items-center gap-3">
@@ -109,21 +120,19 @@ function SettingsPage() {
         </div>
 
         {/* Background */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
           <h3 className="mb-4 font-semibold">{t("settings.bg")}</h3>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {BGS.map((b) => (
               <button key={b} onClick={() => setBg(b)} className={`rounded-lg border p-3 text-xs font-medium ${bg === b ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>
-                {b === "agro" && "🌾 " + t("settings.bgAgro")}
-                {b === "field" && "🌱 " + t("settings.bgField")}
-                {b === "minimal" && "✨ " + t("settings.bgMinimal")}
+                {bgLabels[b]}
               </button>
             ))}
           </div>
         </div>
 
         {/* Notifications */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
           <h3 className="mb-4 flex items-center gap-2 font-semibold"><Bell className="h-4 w-4" /> {t("settings.notifs")}</h3>
           <div className="space-y-2">
             {NOTIF_KEYS.map((k) => (
