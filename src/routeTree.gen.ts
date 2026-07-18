@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUstalarRouteImport } from './routes/_authenticated/ustalar'
 import { Route as AuthenticatedTexnikaRouteImport } from './routes/_authenticated/texnika'
+import { Route as AuthenticatedSozlamalarRouteImport } from './routes/_authenticated/sozlamalar'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedMurojaatRouteImport } from './routes/_authenticated/murojaat'
 import { Route as AuthenticatedMarketRouteImport } from './routes/_authenticated/market'
@@ -53,6 +54,11 @@ const AuthenticatedUstalarRoute = AuthenticatedUstalarRouteImport.update({
 const AuthenticatedTexnikaRoute = AuthenticatedTexnikaRouteImport.update({
   id: '/texnika',
   path: '/texnika',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSozlamalarRoute = AuthenticatedSozlamalarRouteImport.update({
+  id: '/sozlamalar',
+  path: '/sozlamalar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/market': typeof AuthenticatedMarketRoute
   '/murojaat': typeof AuthenticatedMurojaatRoute
   '/profil': typeof AuthenticatedProfilRoute
+  '/sozlamalar': typeof AuthenticatedSozlamalarRoute
   '/texnika': typeof AuthenticatedTexnikaRoute
   '/ustalar': typeof AuthenticatedUstalarRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/market': typeof AuthenticatedMarketRoute
   '/murojaat': typeof AuthenticatedMurojaatRoute
   '/profil': typeof AuthenticatedProfilRoute
+  '/sozlamalar': typeof AuthenticatedSozlamalarRoute
   '/texnika': typeof AuthenticatedTexnikaRoute
   '/ustalar': typeof AuthenticatedUstalarRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/_authenticated/market': typeof AuthenticatedMarketRoute
   '/_authenticated/murojaat': typeof AuthenticatedMurojaatRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
+  '/_authenticated/sozlamalar': typeof AuthenticatedSozlamalarRoute
   '/_authenticated/texnika': typeof AuthenticatedTexnikaRoute
   '/_authenticated/ustalar': typeof AuthenticatedUstalarRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/market'
     | '/murojaat'
     | '/profil'
+    | '/sozlamalar'
     | '/texnika'
     | '/ustalar'
     | '/api/public/telegram/setup'
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/market'
     | '/murojaat'
     | '/profil'
+    | '/sozlamalar'
     | '/texnika'
     | '/ustalar'
     | '/api/public/telegram/setup'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/_authenticated/market'
     | '/_authenticated/murojaat'
     | '/_authenticated/profil'
+    | '/_authenticated/sozlamalar'
     | '/_authenticated/texnika'
     | '/_authenticated/ustalar'
     | '/api/public/telegram/setup'
@@ -269,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/texnika'
       fullPath: '/texnika'
       preLoaderRoute: typeof AuthenticatedTexnikaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sozlamalar': {
+      id: '/_authenticated/sozlamalar'
+      path: '/sozlamalar'
+      fullPath: '/sozlamalar'
+      preLoaderRoute: typeof AuthenticatedSozlamalarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profil': {
@@ -353,6 +372,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMarketRoute: typeof AuthenticatedMarketRoute
   AuthenticatedMurojaatRoute: typeof AuthenticatedMurojaatRoute
   AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
+  AuthenticatedSozlamalarRoute: typeof AuthenticatedSozlamalarRoute
   AuthenticatedTexnikaRoute: typeof AuthenticatedTexnikaRoute
   AuthenticatedUstalarRoute: typeof AuthenticatedUstalarRoute
 }
@@ -366,6 +386,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMarketRoute: AuthenticatedMarketRoute,
   AuthenticatedMurojaatRoute: AuthenticatedMurojaatRoute,
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
+  AuthenticatedSozlamalarRoute: AuthenticatedSozlamalarRoute,
   AuthenticatedTexnikaRoute: AuthenticatedTexnikaRoute,
   AuthenticatedUstalarRoute: AuthenticatedUstalarRoute,
 }

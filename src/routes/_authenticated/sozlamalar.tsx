@@ -39,14 +39,14 @@ function SettingsPage() {
 
   useEffect(() => {
     if (profile) {
-      const p = profile.notification_prefs || {};
+      const p = (profile.notification_prefs as Record<string, unknown> | null) || {};
       setPrefs({
         admin_reply: p.admin_reply !== false,
         order_updates: p.order_updates !== false,
         broadcast: p.broadcast !== false,
         moderation: p.moderation !== false,
       });
-      setBg(profile.bg_choice || "agro");
+      setBg((profile as any).bg_choice || "agro");
     }
   }, [profile]);
 
