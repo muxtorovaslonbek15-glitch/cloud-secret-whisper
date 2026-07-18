@@ -11,6 +11,9 @@ import {
   broadcastNotification,
   adminDeleteRow,
   adminUpdateStatus,
+  listPendingApplications,
+  moderateApplication,
+  replyToContact,
 } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
 import {
