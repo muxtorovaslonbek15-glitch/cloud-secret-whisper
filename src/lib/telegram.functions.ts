@@ -276,12 +276,21 @@ export const listAllUsers = createServerFn({ method: "GET" })
   });
 
 // Set user role (replaces existing roles with the given role)
-const SetRoleInput = z.object({ user_id: z.string().uuid(), role: z.enum(["fermer", "usta", "texnika_egasi", "admin"]) });
+const SetRoleInput = z.object({
+  user_id: z.string().uuid(),
+  role: z.enum(["fermer", "usta", "texnika_egasi", "admin", "yordamchi_admin"]),
+});
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SetRoleInput.parse(i))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    // Only the main admin can grant elevated roles.
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: isYordamchi } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "yordamchi_admin" });
+    if (!isAdmin && !isYordamchi) throw new Error("Forbidden");
+    if (!isAdmin && (data.role === "admin" || data.role === "yordamchi_admin")) {
+      throw new Error("Yordamchi admin admin rolini bera olmaydi");
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
     const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.role });
