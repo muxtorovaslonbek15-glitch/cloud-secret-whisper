@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyAdmin } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
 import { Wrench, MapPin, Star, Phone, Plus, X, Award, Clock } from "lucide-react";
 import { useState } from "react";
@@ -13,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/ustalar")({
 function UstalarPage() {
   const { user } = Route.useRouteContext();
   const qc = useQueryClient();
+  const notify = useServerFn(notifyAdmin);
   const [showAdd, setShowAdd] = useState(false);
 
   const { data: masters, isLoading } = useQuery({
@@ -43,6 +46,9 @@ function UstalarPage() {
         price: m.hourly_rate,
       });
       if (error) throw error;
+      try {
+        await notify({ data: { text: `🔧 Yangi usta chaqiruvi!\n${m.specialty}${m.hourly_rate ? " — " + Number(m.hourly_rate).toLocaleString() + " so'm/soat" : ""}` } });
+      } catch {}
     },
     onSuccess: () => toast.success("Usta chaqirildi! Buyurtmalarim bo'limida ko'ring."),
     onError: (e) => toast.error(e.message),
