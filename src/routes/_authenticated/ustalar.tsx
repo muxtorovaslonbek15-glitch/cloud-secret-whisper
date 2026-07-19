@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdmin } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
-import { Wrench, MapPin, Star, Phone, Plus, X, Award, Clock } from "lucide-react";
+import { Wrench, MapPin, Star, Phone, Plus, X, Award, Clock, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -52,6 +52,18 @@ function UstalarPage() {
     },
     onSuccess: () => toast.success("Usta chaqirildi! Buyurtmalarim bo'limida ko'ring."),
     onError: (e) => toast.error(e.message),
+  });
+
+  const deleteMaster = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("masters").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Profil o'chirildi");
+      qc.invalidateQueries({ queryKey: ["masters"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
@@ -106,6 +118,14 @@ function UstalarPage() {
                 <Phone className="h-4 w-4" />
                 {m.user_id === user.id ? "Bu sizniki" : "Chaqirish"}
               </button>
+              {m.user_id === user.id && (
+                <button
+                  onClick={() => { if (confirm("Profilingizni o'chirasizmi?")) deleteMaster.mutate(m.id); }}
+                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-destructive/40 py-1.5 text-xs text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-3 w-3" /> Profilni o'chirish
+                </button>
+              )}
             </div>
           ))}
         </div>
