@@ -393,3 +393,24 @@ export const deleteOwnAccount = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// --- Notify admin via Telegram (fire-and-forget) ---
+const NotifyAdminInput = z.object({ text: z.string().min(1).max(2000) });
+export const notifyAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => NotifyAdminInput.parse(i))
+  .handler(async ({ data }) => {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.ADMIN_TELEGRAM_ID;
+    if (!token || !chatId) return { ok: false as const };
+    try {
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, text: data.text }),
+      });
+      return { ok: true as const };
+    } catch {
+      return { ok: false as const };
+    }
+  });
