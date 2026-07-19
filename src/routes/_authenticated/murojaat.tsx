@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyAdmin } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
 import { MessageSquare, Phone, Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/murojaat")({
 function ContactPage() {
   const { user } = Route.useRouteContext();
   const qc = useQueryClient();
+  const notify = useServerFn(notifyAdmin);
   const [form, setForm] = useState({ full_name: "", phone: "", subject: "", message: "", kind: "murojaat" });
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -34,7 +37,6 @@ function ContactPage() {
     enabled: !!openId,
   });
 
-  // Realtime for replies
   useEffect(() => {
     const ch = supabase
       .channel("contact-replies-user")
@@ -56,6 +58,9 @@ function ContactPage() {
         kind: form.kind,
       });
       if (error) throw error;
+      try {
+        await notify({ data: { text: `💬 Yangi murojaat!\n${form.subject}\nKimdan: ${form.full_name} (${form.phone})\n\n${form.message}` } });
+      } catch {}
     },
     onSuccess: () => {
       toast.success("Xabaringiz adminga yuborildi. Javob kelganda bildirishnoma olasiz.");
@@ -162,7 +167,6 @@ function ContactPage() {
                     </button>
                     {open && (
                       <div className="border-t border-border bg-secondary/20 p-3">
-                        {/* Original message from user */}
                         <ChatBubble side="user" body={m.message} time={m.created_at} name="Siz" />
                         {(replies ?? []).map((r) => (
                           <ChatBubble
