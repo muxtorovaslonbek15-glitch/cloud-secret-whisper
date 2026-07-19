@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdmin } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
-import { Tractor, MapPin, Calendar, Search, Plus, X, Clock } from "lucide-react";
+import { Tractor, MapPin, Calendar, Search, Plus, X, Clock, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -59,6 +59,18 @@ function TexnikaPage() {
       qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
     onError: (e) => toast.error(e.message),
+  });
+
+  const deleteTechnique = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("techniques").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Texnika o'chirildi");
+      qc.invalidateQueries({ queryKey: ["techniques"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
@@ -132,6 +144,14 @@ function TexnikaPage() {
                   <Calendar className="h-4 w-4" />
                   {t.owner_id === user.id ? "Bu sizniki" : "Bron qilish"}
                 </button>
+                {t.owner_id === user.id && (
+                  <button
+                    onClick={() => { if (confirm("Texnikani o'chirasizmi?")) deleteTechnique.mutate(t.id); }}
+                    className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-destructive/40 py-1.5 text-xs text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-3 w-3" /> O'chirish
+                  </button>
+                )}
               </div>
             </div>
           ))}
