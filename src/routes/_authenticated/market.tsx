@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdmin } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
-import { ShoppingBasket, Plus, Trash2, Package, Upload, X, Loader2 } from "lucide-react";
+import { ShoppingBasket, Plus, Trash2, Package, Upload, X, Loader2, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 
@@ -21,7 +21,7 @@ function MarketPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [buyProduct, setBuyProduct] = useState<null | { id: string; name: string; price: number }>(null);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", price: "", category: "", stock: "0", image_url: "" });
+  const [form, setForm] = useState({ name: "", description: "", price: "", discount_price: "", category: "", stock: "0", image_url: "" });
   const [buyForm, setBuyForm] = useState({ quantity: "1", phone: "", address: "", notes: "" });
 
   const { data: isAdmin } = useQuery({
@@ -64,10 +64,13 @@ function MarketPage() {
 
   const add = useMutation({
     mutationFn: async () => {
+      const price = Number(form.price) || 0;
+      const discount = form.discount_price ? Number(form.discount_price) : null;
       const { error } = await supabase.from("market_products").insert({
         name: form.name,
         description: form.description || null,
-        price: Number(form.price) || 0,
+        price,
+        discount_price: discount && discount > 0 && discount < price ? discount : null,
         category: form.category || null,
         stock: Number(form.stock) || 0,
         image_url: form.image_url || null,
@@ -78,7 +81,7 @@ function MarketPage() {
     onSuccess: () => {
       toast.success("Mahsulot qo'shildi");
       setOpenAdd(false);
-      setForm({ name: "", description: "", price: "", category: "", stock: "0", image_url: "" });
+      setForm({ name: "", description: "", price: "", discount_price: "", category: "", stock: "0", image_url: "" });
       qc.invalidateQueries({ queryKey: ["market_products"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -161,36 +164,53 @@ function MarketPage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {products.map((p) => (
-            <div key={p.id} className="group overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift">
-              <div className="aspect-square overflow-hidden bg-secondary">
-                {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                ) : (
-                  <div className="flex h-full items-center justify-center"><Package className="h-16 w-16 text-muted-foreground/30" /></div>
+          {products.map((p) => {
+            const hasDiscount = p.discount_price != null && Number(p.discount_price) > 0 && Number(p.discount_price) < Number(p.price);
+            const discountPercent = hasDiscount ? Math.round((1 - Number(p.discount_price) / Number(p.price)) * 100) : 0;
+            const effectivePrice = hasDiscount ? Number(p.discount_price) : Number(p.price);
+            return (
+              <div key={p.id} className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift">
+                {hasDiscount && (
+                  <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground shadow-md">
+                    <Tag className="h-3 w-3" /> -{discountPercent}%
+                  </div>
                 )}
-              </div>
-              <div className="p-4">
-                {p.category && <div className="text-[10px] uppercase font-semibold text-primary">{p.category}</div>}
-                <h3 className="mt-1 font-semibold line-clamp-1">{p.name}</h3>
-                {p.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{p.description}</p>}
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="text-lg font-bold">{Number(p.price).toLocaleString("uz-UZ")} <span className="text-xs font-normal text-muted-foreground">{p.currency}</span></div>
-                  <button
-                    onClick={() => setBuyProduct({ id: p.id, name: p.name, price: Number(p.price) })}
-                    className="rounded-lg bg-gradient-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                  >
-                    {t("market.buy")}
-                  </button>
+                <div className="aspect-square overflow-hidden bg-secondary">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center"><Package className="h-16 w-16 text-muted-foreground/30" /></div>
+                  )}
                 </div>
-                {isAdmin && (
-                  <button onClick={() => del.mutate(p.id)} className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-destructive/40 py-1 text-xs text-destructive hover:bg-destructive/10">
-                    <Trash2 className="h-3 w-3" /> O'chirish
-                  </button>
-                )}
+                <div className="p-4">
+                  {p.category && <div className="text-[10px] uppercase font-semibold text-primary">{p.category}</div>}
+                  <h3 className="mt-1 font-semibold line-clamp-1">{p.name}</h3>
+                  {p.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{p.description}</p>}
+                  <div className="mt-3 flex items-center justify-between">
+                    <div>
+                      {hasDiscount && (
+                        <div className="text-xs text-muted-foreground line-through">{Number(p.price).toLocaleString("uz-UZ")} so'm</div>
+                      )}
+                      <div className={`text-lg font-bold ${hasDiscount ? "text-destructive" : ""}`}>
+                        {effectivePrice.toLocaleString("uz-UZ")} <span className="text-xs font-normal text-muted-foreground">{p.currency}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setBuyProduct({ id: p.id, name: p.name, price: effectivePrice })}
+                      className="rounded-lg bg-gradient-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                    >
+                      {t("market.buy")}
+                    </button>
+                  </div>
+                  {isAdmin && (
+                    <button onClick={() => del.mutate(p.id)} className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-destructive/40 py-1 text-xs text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-3 w-3" /> O'chirish
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -206,6 +226,10 @@ function MarketPage() {
               <input placeholder={t("market.name")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
               <textarea rows={3} placeholder={t("market.desc")} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
               <input type="number" placeholder={t("market.price")} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+              <div>
+                <label className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground"><Tag className="h-3 w-3" /> Chegirmali narx (ixtiyoriy)</label>
+                <input type="number" placeholder="Masalan: 45000 (asl narxdan kichik bo'lsin)" value={form.discount_price} onChange={(e) => setForm({ ...form, discount_price: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+              </div>
               <input placeholder={t("market.category")} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
               <input type="number" placeholder={t("market.stock")} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
 
