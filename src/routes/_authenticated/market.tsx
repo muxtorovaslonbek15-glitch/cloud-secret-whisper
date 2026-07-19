@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyAdmin } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
 import { ShoppingBasket, Plus, Trash2, Package, Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +17,7 @@ function MarketPage() {
   const { t } = useI18n();
   const { user } = Route.useRouteContext();
   const qc = useQueryClient();
+  const notify = useServerFn(notifyAdmin);
   const [openAdd, setOpenAdd] = useState(false);
   const [buyProduct, setBuyProduct] = useState<null | { id: string; name: string; price: number }>(null);
   const [uploading, setUploading] = useState(false);
@@ -46,10 +49,9 @@ function MarketPage() {
       const path = `${user.id}/${Date.now()}.${ext}`;
       const { error } = await supabase.storage.from("market-images").upload(path, file, { upsert: false, contentType: file.type });
       if (error) throw error;
-      // Bucket is private (workspace policy) — use a long-lived signed URL.
       const { data: signed, error: signErr } = await supabase.storage
         .from("market-images")
-        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10); // 10 years
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
       if (signErr || !signed?.signedUrl) throw signErr ?? new Error("Signed URL yaratilmadi");
       setForm((f) => ({ ...f, image_url: signed.signedUrl }));
       toast.success("Rasm yuklandi");
@@ -106,7 +108,6 @@ function MarketPage() {
       }).select("id").single();
       if (error) throw error;
 
-      // Notify all admins so their bell lights up
       const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (admins && admins.length > 0) {
         await supabase.from("notifications").insert(
@@ -119,6 +120,9 @@ function MarketPage() {
           })),
         );
       }
+      try {
+        await notify({ data: { text: `🛒 Yangi market buyurtmasi!\n${buyProduct.name} × ${qty}\n${total.toLocaleString()} so'm\nTel: ${buyForm.phone}\nManzil: ${buyForm.address}` } });
+      } catch {}
       return order;
     },
     onSuccess: () => {
