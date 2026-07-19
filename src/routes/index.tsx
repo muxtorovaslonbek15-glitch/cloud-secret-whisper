@@ -293,7 +293,7 @@ function Index() {
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <li><a href="tel:+998957935357" className="hover:text-foreground">+998 95 793 53 57</a></li>
                 <li><a href="tel:+998505109501" className="hover:text-foreground">+998 50 510 95 01</a></li>
-                <li><a href="https://agroyordamchi.lovable.app" className="hover:text-foreground">agroyordamchi.lovable.app</a></li>
+                <li><a href="https://agroyordamchiuz.vercel.app" className="hover:text-foreground">agroyordamchiuz.vercel.app</a></li>
                 <li>Navoiy, O'zbekiston</li>
               </ul>
             </div>
