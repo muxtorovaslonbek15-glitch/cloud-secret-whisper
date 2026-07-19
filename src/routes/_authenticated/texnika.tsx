@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyAdmin } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
 import { Tractor, MapPin, Calendar, Search, Plus, X, Clock } from "lucide-react";
 import { useState } from "react";
@@ -13,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/texnika")({
 function TexnikaPage() {
   const { user } = Route.useRouteContext();
   const qc = useQueryClient();
+  const notify = useServerFn(notifyAdmin);
   const [search, setSearch] = useState("");
   const [viloyat, setViloyat] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -47,6 +50,9 @@ function TexnikaPage() {
         price: tech.daily_price,
       });
       if (error) throw error;
+      try {
+        await notify({ data: { text: `🚜 Yangi texnika bron qilindi!${tech.daily_price ? "\nNarxi: " + Number(tech.daily_price).toLocaleString() + " so'm/kun" : ""}` } });
+      } catch {}
     },
     onSuccess: () => {
       toast.success("Buyurtma yaratildi! Buyurtmalarim bo'limida ko'ring.");
