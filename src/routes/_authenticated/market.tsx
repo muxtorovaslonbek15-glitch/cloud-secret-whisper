@@ -21,7 +21,7 @@ function MarketPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [buyProduct, setBuyProduct] = useState<null | { id: string; name: string; price: number }>(null);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", price: "", discount_price: "", category: "", stock: "0", image_url: "" });
+  const [form, setForm] = useState({ name: "", description: "", price: "", discount_price: "", category: "", miqdor: "0", image_url: "" });
   const [buyForm, setBuyForm] = useState({ quantity: "1", phone: "", address: "", notes: "" });
 
   const { data: isAdmin } = useQuery({
@@ -72,7 +72,7 @@ function MarketPage() {
         price,
         discount_price: discount && discount > 0 && discount < price ? discount : null,
         category: form.category || null,
-        stock: Number(form.stock) || 0,
+        miqdor: Number(form.miqdor) || 0,
         image_url: form.image_url || null,
         created_by: user.id,
       });
@@ -81,7 +81,7 @@ function MarketPage() {
     onSuccess: () => {
       toast.success("Mahsulot qo'shildi");
       setOpenAdd(false);
-      setForm({ name: "", description: "", price: "", discount_price: "", category: "", stock: "0", image_url: "" });
+      setForm({ name: "", description: "", price: "", discount_price: "", category: "", miqdor: "0", image_url: "" });
       qc.invalidateQueries({ queryKey: ["market_products"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -111,6 +111,8 @@ function MarketPage() {
       }).select("id").single();
       if (error) throw error;
 
+      await supabase.rpc("miqdorni_kamaytirish", { p_product_id: buyProduct.id, p_soni: qty });
+
       const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (admins && admins.length > 0) {
         await supabase.from("notifications").insert(
@@ -132,6 +134,7 @@ function MarketPage() {
       toast.success("Buyurtma qabul qilindi! Admin siz bilan bog'lanadi.");
       setBuyProduct(null);
       setBuyForm({ quantity: "1", phone: "", address: "", notes: "" });
+      qc.invalidateQueries({ queryKey: ["market_products"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -168,6 +171,7 @@ function MarketPage() {
             const hasDiscount = p.discount_price != null && Number(p.discount_price) > 0 && Number(p.discount_price) < Number(p.price);
             const discountPercent = hasDiscount ? Math.round((1 - Number(p.discount_price) / Number(p.price)) * 100) : 0;
             const effectivePrice = hasDiscount ? Number(p.discount_price) : Number(p.price);
+            const tugagan = (p.miqdor ?? 0) <= 0;
             return (
               <div key={p.id} className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift">
                 {hasDiscount && (
@@ -175,9 +179,14 @@ function MarketPage() {
                     <Tag className="h-3 w-3" /> -{discountPercent}%
                   </div>
                 )}
+                {tugagan && (
+                  <div className="absolute right-3 top-3 z-10 rounded-full bg-secondary px-2.5 py-1 text-[10px] font-semibold text-muted-foreground shadow-md">
+                    Tugadi
+                  </div>
+                )}
                 <div className="aspect-square overflow-hidden bg-secondary">
                   {p.image_url ? (
-                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                    <img src={p.image_url} alt={p.name} className={`h-full w-full object-cover transition-transform group-hover:scale-105 ${tugagan ? "opacity-50 grayscale" : ""}`} />
                   ) : (
                     <div className="flex h-full items-center justify-center"><Package className="h-16 w-16 text-muted-foreground/30" /></div>
                   )}
@@ -196,11 +205,15 @@ function MarketPage() {
                       </div>
                     </div>
                     <button
+                      disabled={tugagan}
                       onClick={() => setBuyProduct({ id: p.id, name: p.name, price: effectivePrice })}
-                      className="rounded-lg bg-gradient-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                      className="rounded-lg bg-gradient-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
                     >
-                      {t("market.buy")}
+                      {tugagan ? "Tugadi" : t("market.buy")}
                     </button>
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {tugagan ? "Omborda yo'q" : `Omborda: ${p.miqdor} dona`}
                   </div>
                   {isAdmin && (
                     <button onClick={() => del.mutate(p.id)} className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-destructive/40 py-1 text-xs text-destructive hover:bg-destructive/10">
@@ -231,7 +244,10 @@ function MarketPage() {
                 <input type="number" placeholder="Masalan: 45000 (asl narxdan kichik bo'lsin)" value={form.discount_price} onChange={(e) => setForm({ ...form, discount_price: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
               </div>
               <input placeholder={t("market.category")} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
-              <input type="number" placeholder={t("market.stock")} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Omordagi miqdori (dona)</label>
+                <input type="number" placeholder="Masalan: 50" value={form.miqdor} onChange={(e) => setForm({ ...form, miqdor: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+              </div>
 
               <div className="rounded-lg border border-dashed border-border p-3">
                 <label className="flex cursor-pointer items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground">
