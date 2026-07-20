@@ -21,7 +21,7 @@ function MarketPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [buyProduct, setBuyProduct] = useState<null | { id: string; name: string; price: number }>(null);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", price: "", discount_price: "", category: "", miqdor: "0", image_url: "" });
+  const [form, setForm] = useState({ name: "", description: "", price: "", discount_price: "", category: "", miqdor: "", birlik: "dona", image_url: "" });
   const [buyForm, setBuyForm] = useState({ quantity: "1", phone: "", address: "", notes: "" });
 
   const { data: isAdmin } = useQuery({
@@ -72,7 +72,8 @@ function MarketPage() {
         price,
         discount_price: discount && discount > 0 && discount < price ? discount : null,
         category: form.category || null,
-        miqdor: Number(form.miqdor) || 0,
+        miqdor: form.miqdor.trim() === "" ? null : Number(form.miqdor),
+        birlik: form.birlik,
         image_url: form.image_url || null,
         created_by: user.id,
       });
@@ -81,7 +82,7 @@ function MarketPage() {
     onSuccess: () => {
       toast.success("Mahsulot qo'shildi");
       setOpenAdd(false);
-      setForm({ name: "", description: "", price: "", discount_price: "", category: "", miqdor: "0", image_url: "" });
+      setForm({ name: "", description: "", price: "", discount_price: "", category: "", miqdor: "", birlik: "dona", image_url: "" });
       qc.invalidateQueries({ queryKey: ["market_products"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -171,7 +172,8 @@ function MarketPage() {
             const hasDiscount = p.discount_price != null && Number(p.discount_price) > 0 && Number(p.discount_price) < Number(p.price);
             const discountPercent = hasDiscount ? Math.round((1 - Number(p.discount_price) / Number(p.price)) * 100) : 0;
             const effectivePrice = hasDiscount ? Number(p.discount_price) : Number(p.price);
-            const tugagan = (p.miqdor ?? 0) <= 0;
+            const cheklovsiz = p.miqdor == null;
+            const tugagan = !cheklovsiz && (p.miqdor ?? 0) <= 0;
             return (
               <div key={p.id} className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift">
                 {hasDiscount && (
@@ -201,7 +203,7 @@ function MarketPage() {
                         <div className="text-xs text-muted-foreground line-through">{Number(p.price).toLocaleString("uz-UZ")} so'm</div>
                       )}
                       <div className={`text-lg font-bold ${hasDiscount ? "text-destructive" : ""}`}>
-                        {effectivePrice.toLocaleString("uz-UZ")} <span className="text-xs font-normal text-muted-foreground">{p.currency}</span>
+                        {effectivePrice.toLocaleString("uz-UZ")} <span className="text-xs font-normal text-muted-foreground">{p.currency}{!cheklovsiz && ` / ${p.birlik}`}</span>
                       </div>
                     </div>
                     <button
@@ -213,7 +215,7 @@ function MarketPage() {
                     </button>
                   </div>
                   <div className="mt-1 text-[10px] text-muted-foreground">
-                    {tugagan ? "Omborda yo'q" : `Omborda: ${p.miqdor} dona`}
+                    {cheklovsiz ? "Talabga ko'ra mavjud" : tugagan ? "Omborda yo'q" : `Omborda: ${p.miqdor} ${p.birlik}`}
                   </div>
                   {isAdmin && (
                     <button onClick={() => del.mutate(p.id)} className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-destructive/40 py-1 text-xs text-destructive hover:bg-destructive/10">
@@ -244,9 +246,36 @@ function MarketPage() {
                 <input type="number" placeholder="Masalan: 45000 (asl narxdan kichik bo'lsin)" value={form.discount_price} onChange={(e) => setForm({ ...form, discount_price: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
               </div>
               <input placeholder={t("market.category")} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Omordagi miqdori (dona)</label>
-                <input type="number" placeholder="Masalan: 50" value={form.miqdor} onChange={(e) => setForm({ ...form, miqdor: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+
+              <div className="rounded-lg border border-border p-3">
+                <label className="mb-2 block text-xs font-medium text-muted-foreground">O'lchov birligi</label>
+                <div className="mb-3 flex gap-2">
+                  {[
+                    { v: "dona", label: "Dona" },
+                    { v: "kg", label: "Kilogramm (kg)" },
+                  ].map((b) => (
+                    <button
+                      key={b.v}
+                      type="button"
+                      onClick={() => setForm({ ...form, birlik: b.v })}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                        form.birlik === b.v ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                      }`}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Omordagi miqdori ({form.birlik}) — bo'sh qoldirsangiz, "Talabga ko'ra mavjud" deb hisoblanadi
+                </label>
+                <input
+                  type="number"
+                  placeholder="Bo'sh qoldiring — cheklovsiz"
+                  value={form.miqdor}
+                  onChange={(e) => setForm({ ...form, miqdor: e.target.value })}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
               </div>
 
               <div className="rounded-lg border border-dashed border-border p-3">
