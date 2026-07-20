@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdmin } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
-import { ShoppingBasket, Plus, Trash2, Package, Upload, X, Loader2, Tag } from "lucide-react";
+import { ShoppingBasket, Plus, Trash2, Package, Upload, X, Loader2, Tag, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 
@@ -23,6 +23,7 @@ function MarketPage() {
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", price: "", discount_price: "", category: "", miqdor: "", birlik: "dona", image_url: "" });
   const [buyForm, setBuyForm] = useState({ quantity: "1", phone: "", address: "", notes: "" });
+  const [search, setSearch] = useState("");
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user.id],
@@ -140,6 +141,10 @@ function MarketPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const filteredProducts = (products ?? []).filter((p) =>
+    p.name.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
   return (
     <AppShell title={t("market.title")}>
       <div className="mb-6 flex items-center justify-between">
@@ -159,16 +164,26 @@ function MarketPage() {
         )}
       </div>
 
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Mahsulot qidirish..."
+          className="w-full rounded-lg border border-input bg-card py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+
       {isLoading ? (
         <div className="text-center text-muted-foreground py-12">...</div>
-      ) : !products || products.length === 0 ? (
+      ) : filteredProducts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-16 text-center">
           <Package className="mx-auto h-12 w-12 text-muted-foreground/50" />
-          <p className="mt-4 text-muted-foreground">{t("market.empty")}</p>
+          <p className="mt-4 text-muted-foreground">{search ? "Hech narsa topilmadi" : t("market.empty")}</p>
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {products.map((p) => {
+          {filteredProducts.map((p) => {
             const hasDiscount = p.discount_price != null && Number(p.discount_price) > 0 && Number(p.discount_price) < Number(p.price);
             const discountPercent = hasDiscount ? Math.round((1 - Number(p.discount_price) / Number(p.price)) * 100) : 0;
             const effectivePrice = hasDiscount ? Number(p.discount_price) : Number(p.price);
