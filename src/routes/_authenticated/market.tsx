@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdmin } from "@/lib/telegram.functions";
 import { AppShell } from "@/components/app-shell";
-import { ShoppingBasket, Plus, Trash2, Package, Upload, X, Loader2, Tag, Search } from "lucide-react";
+import { ShoppingBasket, Plus, Trash2, Package, Upload, X, Loader2, Tag, Search, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 
@@ -13,15 +13,18 @@ export const Route = createFileRoute("/_authenticated/market")({
   component: MarketPage,
 });
 
+const emptyForm = { name: "", description: "", price: "", discount_price: "", category: "", miqdor: "", birlik: "dona", image_url: "" };
+
 function MarketPage() {
   const { t } = useI18n();
   const { user } = Route.useRouteContext();
   const qc = useQueryClient();
   const notify = useServerFn(notifyAdmin);
   const [openAdd, setOpenAdd] = useState(false);
+  const [editProduct, setEditProduct] = useState<any | null>(null);
   const [buyProduct, setBuyProduct] = useState<null | { id: string; name: string; price: number }>(null);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", price: "", discount_price: "", category: "", miqdor: "", birlik: "dona", image_url: "" });
+  const [form, setForm] = useState(emptyForm);
   const [buyForm, setBuyForm] = useState({ quantity: "1", phone: "", address: "", notes: "" });
   const [search, setSearch] = useState("");
 
@@ -83,7 +86,33 @@ function MarketPage() {
     onSuccess: () => {
       toast.success("Mahsulot qo'shildi");
       setOpenAdd(false);
-      setForm({ name: "", description: "", price: "", discount_price: "", category: "", miqdor: "", birlik: "dona", image_url: "" });
+      setForm(emptyForm);
+      qc.invalidateQueries({ queryKey: ["market_products"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      if (!editProduct) return;
+      const price = Number(form.price) || 0;
+      const discount = form.discount_price ? Number(form.discount_price) : null;
+      const { error } = await supabase.from("market_products").update({
+        name: form.name,
+        description: form.description || null,
+        price,
+        discount_price: discount && discount > 0 && discount < price ? discount : null,
+        category: form.category || null,
+        miqdor: form.miqdor.trim() === "" ? null : Number(form.miqdor),
+        birlik: form.birlik,
+        image_url: form.image_url || null,
+      }).eq("id", editProduct.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Mahsulot yangilandi");
+      setEditProduct(null);
+      setForm(emptyForm);
       qc.invalidateQueries({ queryKey: ["market_products"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -141,6 +170,20 @@ function MarketPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const openEdit = (p: any) => {
+    setForm({
+      name: p.name ?? "",
+      description: p.description ?? "",
+      price: p.price != null ? String(p.price) : "",
+      discount_price: p.discount_price != null ? String(p.discount_price) : "",
+      category: p.category ?? "",
+      miqdor: p.miqdor != null ? String(p.miqdor) : "",
+      birlik: p.birlik ?? "dona",
+      image_url: p.image_url ?? "",
+    });
+    setEditProduct(p);
+  };
+
   const filteredProducts = (products ?? []).filter((p) =>
     p.name.toLowerCase().includes(search.trim().toLowerCase())
   );
@@ -158,7 +201,7 @@ function MarketPage() {
           </div>
         </div>
         {isAdmin && (
-          <button onClick={() => setOpenAdd(true)} className="flex items-center gap-2 rounded-lg bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft">
+          <button onClick={() => { setForm(emptyForm); setOpenAdd(true); }} className="flex items-center gap-2 rounded-lg bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft">
             <Plus className="h-4 w-4" /> {t("market.add")}
           </button>
         )}
@@ -233,9 +276,14 @@ function MarketPage() {
                     {cheklovsiz ? "Talabga ko'ra mavjud" : tugagan ? "Omborda yo'q" : `Omborda: ${p.miqdor} ${p.birlik}`}
                   </div>
                   {isAdmin && (
-                    <button onClick={() => del.mutate(p.id)} className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-destructive/40 py-1 text-xs text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-3 w-3" /> O'chirish
-                    </button>
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={() => openEdit(p)} className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-primary/40 py-1 text-xs text-primary hover:bg-primary/10">
+                        <Pencil className="h-3 w-3" /> Tahrirlash
+                      </button>
+                      <button onClick={() => del.mutate(p.id)} className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-destructive/40 py-1 text-xs text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-3 w-3" /> O'chirish
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -244,13 +292,16 @@ function MarketPage() {
         </div>
       )}
 
-      {/* Add product modal (admin) */}
-      {openAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setOpenAdd(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-lift animate-slide-up-fade" onClick={(e) => e.stopPropagation()}>
+      {/* Add / Edit product modal (admin) */}
+      {(openAdd || editProduct) && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => { setOpenAdd(false); setEditProduct(null); }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-lift animate-slide-up-fade max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">{t("market.add")}</h3>
-              <button onClick={() => setOpenAdd(false)}><X className="h-5 w-5" /></button>
+              <h3 className="text-lg font-semibold">{editProduct ? "Mahsulotni tahrirlash" : t("market.add")}</h3>
+              <button onClick={() => { setOpenAdd(false); setEditProduct(null); }}><X className="h-5 w-5" /></button>
             </div>
             <div className="mt-4 space-y-3">
               <input placeholder={t("market.name")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
@@ -304,8 +355,16 @@ function MarketPage() {
               <input placeholder="Yoki rasm URL manzili" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
             </div>
             <div className="mt-4 flex gap-2">
-              <button onClick={() => setOpenAdd(false)} className="flex-1 rounded-lg border border-border py-2 text-sm">Bekor</button>
-              <button disabled={!form.name || add.isPending} onClick={() => add.mutate()} className="flex-1 rounded-lg bg-gradient-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">{t("market.save")}</button>
+              <button onClick={() => { setOpenAdd(false); setEditProduct(null); }} className="flex-1 rounded-lg border border-border py-2 text-sm">Bekor</button>
+              {editProduct ? (
+                <button disabled={!form.name || update.isPending} onClick={() => update.mutate()} className="flex-1 rounded-lg bg-gradient-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+                  {update.isPending ? "Saqlanmoqda..." : "Saqlash"}
+                </button>
+              ) : (
+                <button disabled={!form.name || add.isPending} onClick={() => add.mutate()} className="flex-1 rounded-lg bg-gradient-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+                  {add.isPending ? "Saqlanmoqda..." : t("market.save")}
+                </button>
+              )}
             </div>
           </div>
         </div>
